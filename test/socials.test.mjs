@@ -50,3 +50,8 @@ test('upload HTTP auth, read token, origin, traversal, no overwrite, references,
     await app.close();app=createApp(config);await new Promise(r=>app.server.listen(0,'127.0.0.1',r));assert.equal(app.getState().socialIcons[id],png());
   }finally{await app.close();rmSync(dir,{recursive:true,force:true});}
 });
+
+test('grouped uploaded assets survive backup, preset load and SQLite restart',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'pawn-group-assets-')),store=new Store(dir),id='b'.repeat(32),s=defaults();
+ try{s.socialIcons[id]=png();s.socials.items=[{id:'shared',text:'fixture',cta:'Follow',enabled:true,platforms:[{id:'a',platform:'twitch',icon:null,enabled:true},{id:'b',platform:'x',icon:id,enabled:false}]}];const saved=applyAction(s,{type:'save-preset',name:'Group'}),copy=applyAction(defaults(),{type:'import',data:{version:1,settings:settingsOf(saved),session:saved.session,presets:saved.presets,socialIcons:saved.socialIcons}});assert.deepEqual(copy.socials,s.socials);assert.deepEqual(copy.socialIcons,s.socialIcons);const loaded=applyAction({...copy,socials:{...copy.socials,items:[]}},{type:'load-preset',name:'Group'});assert.deepEqual(loaded.socials,s.socials);store.set('state',loaded);assert.deepEqual(store.state().socials,s.socials);}finally{store.close();rmSync(dir,{recursive:true,force:true});}
+});
