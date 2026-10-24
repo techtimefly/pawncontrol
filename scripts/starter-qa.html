@@ -1,0 +1,55 @@
+<!doctype html><meta charset="utf-8"><title>Starter templates browser QA</title>
+<style>body{font:16px system-ui;background:#ddd;color:#111}button{padding:12px}pre{white-space:pre-wrap}iframe{border:0;display:block;margin:12px 0;flex:none}#frames{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}</style>
+<button id="run">Run starter template checks</button><pre id="results">Ready</pre><div id="frames"></div>
+<script type="module">
+import {starterList} from '/starter-templates.mjs';
+const output=document.querySelector('#results'),frames=document.querySelector('#frames');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const check=(ok,message)=>{if(!ok)throw Error(message);output.textContent+='PASS '+message+'\n';};
+async function wait(fn){for(let i=0;i<100;i++){if(fn())return;await sleep(30);}throw Error('Timed out: '+fn);}
+const state=async()=>await(await fetch('/api/state')).json();
+const action=async data=>{const r=await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw Error(await r.text());return (await r.json()).state;};
+const list=(s,k)=>k==='tips'?s.tips.items:s.ticker.messages;
+async function seed(kind){const s=await state();await action({type:'starter-templates',kind,operation:'undo',expected:list(s,kind),items:[{...starterList(kind)[0],id:'custom',text:'Custom saved content',enabled:true}]});}
+async function make(path,width){const f=document.createElement('iframe');f.style.width=width+'px';f.style.height='800px';frames.append(f);await new Promise(r=>{f.onload=r;f.src=path;});await wait(()=>path==='/overlay'?f.contentDocument.querySelector('.stats-card'):!f.contentDocument.querySelector('#app').hidden);return f;}
+function input(e,value){e.focus();e.value=value;e.dispatchEvent(new Event('input',{bubbles:true}));}
+const confirm=d=>d.querySelector('#modal-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+const open=async(d,b)=>{b.click();await wait(()=>d.querySelector('#modal').open);};
+const done=async(d,b)=>{await wait(()=>!b.disabled&&!d.querySelector('#modal').open);await sleep(80);};
+document.querySelector('#run').onclick=async()=>{
+ document.querySelector('#run').disabled=true;output.textContent='';frames.replaceChildren();
+ try{
+  let s=await state();s.ticker.paused=true;s.widgets.tips.visible=true;
+  await action({type:'settings',settings:{ticker:s.ticker,widgets:s.widgets}});await action({type:'tips-playback',command:'pause'});
+  const overlay=await make('/overlay',640);
+  for(const [path,width,kind] of [['/control',1280,'cta'],['/control',1280,'tips'],['/dock',320,'tips'],['/dock',320,'cta'],['/dock',380,'cta'],['/dock/cta',320,'cta'],['/dock/cta',380,'cta'],['/dock',380,'tips']]){
+   await seed(kind);const f=await make(path,width),d=f.contentDocument;
+   d.querySelector(path==='/control'?`[data-tab="${kind==='cta'?'ticker':'tips'}"]`:kind==='tips'?'#dock-tips-tab':'#dock-cta-tab').click();
+   const region=d.querySelector(`#${kind}-starter-controls`),[restore,add,undo]=region.querySelectorAll('button');
+   await wait(()=>!region.closest('.tab-panel').hidden);check(f.contentWindow.innerWidth===width,`${path} ${kind}: measured ${width}px`);
+   check(d.documentElement.scrollWidth<=width,`${path} ${kind}: no horizontal clipping`);
+   const visual=()=>d.querySelector(kind==='tips'?'#tips-items textarea':'#message-list textarea');
+   input(visual(),'UNSAVED visual draft');const before=await state();await open(d,restore);
+   check(d.querySelector('#modal-content').textContent.includes(starterList(kind)[0].text),'exact template preview');
+   check(d.querySelector('#modal').getBoundingClientRect().right<=width,'dialog fits viewport');
+   d.querySelector('#modal-cancel').click();await done(d,restore);check(visual().value==='UNSAVED visual draft','cancel retains visual draft');check(same(list(await state(),kind),list(before,kind)),'cancel leaves saved content untouched');
+   await open(d,restore);confirm(d);await done(d,restore);let after=await state();check(same(list(after,kind),starterList(kind)),'restore exact shipped list');
+   const copy=structuredClone(after);copy[kind==='tips'?'tips':'ticker'][kind==='tips'?'items':'messages']=list(before,kind);delete copy.revision;delete before.revision;check(same(copy,before),'all non-list settings/session/playback preserved');
+   await open(d,undo);confirm(d);await done(d,restore);check(list(await state(),kind)[0].id==='custom','one-step undo');
+   d.querySelector(`#${kind}-text-toggle`).click();const source=d.querySelector(`#${kind}-text-source`);input(source,'Text: RETAIN ADVANCED DRAFT');
+   await open(d,add);confirm(d);await done(d,restore);check(source.value==='Text: RETAIN ADVANCED DRAFT','add retains advanced draft');
+   check(list(await state(),kind).length===starterList(kind).length+1,'add count correct');add.click();await done(d,restore);check(!d.querySelector('#modal').open,'repeated add is no-op');
+   await open(d,restore);await seed(kind);await sleep(100);confirm(d);await done(d,restore);check(list(await state(),kind)[0].id==='custom','external SSE conflict rejected');check(source.value==='Text: RETAIN ADVANCED DRAFT','SSE conflict retains draft');
+   await fetch('/qa/fail',{method:'POST'});await open(d,restore);confirm(d);await done(d,restore);check(list(await state(),kind)[0].id==='custom','failed request leaves saved list');check(source.value==='Text: RETAIN ADVANCED DRAFT','failure retains draft');
+   await open(d,restore);confirm(d);await done(d,restore);check(same(list(await state(),kind),starterList(kind)),'retry succeeds');
+   if(kind==='tips'){await wait(()=>overlay.contentDocument.querySelector('.tips-surface')?.dataset.tipId!=='custom');check((await state()).tipsPlayback.paused,'removed playing item keeps pause');}
+   check(d.documentElement.scrollWidth<=width,'advanced mode no horizontal clipping');
+   f.dataset.result='PASS';
+   // Each control owns an SSE connection. Keep only two finished controls so
+   // the browser's per-origin connection limit cannot starve test requests.
+   while(frames.children.length>3)frames.children[1].remove();
+  }
+  output.textContent+='ALL CHECKS PASSED\n';
+ }catch(e){output.textContent+='FAIL '+e.stack;}finally{document.querySelector('#run').disabled=false;}
+};
+</script>

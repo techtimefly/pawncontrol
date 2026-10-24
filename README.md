@@ -86,6 +86,16 @@ For the Linux systemd service, edit `/opt/pawn_control/.env` and run `systemctl 
 
 To re-enable authentication, set AUTH_REQUIRED=true, supply a valid CONTROL_PASSWORD and OVERLAY_TOKEN, and restart/recreate again. Refresh the panel/docks and replace token-free OBS URLs with the full URLs from Settings/Credits. All prior login sessions are invalid after restart; session results and layouts stay saved. Blank, misspelled, or other AUTH_REQUIRED values fail startup rather than disabling authentication.
 
+## Restore starter tips and CTA messages
+
+Use **Restore default tips** or **Restore default CTA messages** beside the content editor in the full panel, combined dock, or CTA dock. Defaults mean the starter templates shipped with the installed app version. The confirmation previews the exact resulting list, order, enabled flags, titles/categories and literal tokens before replacing custom content. New installs use “Enjoying the games? Follow {channel} for more chess!”; upgrading never rewrites your saved messages automatically.
+
+Only the selected content list changes. Position, theme, appearance, timing, speed, mode, pause, visibility, account/channel, goals, session, scores, socials, credits and presets remain unchanged. This is separate from **Reset session**. A removed current playback item falls back to an available item; pause and hidden state are preserved.
+
+**Add missing defaults** appends only absent starters. A matching ID, or exactly matching text (plus title/category for tips), counts as present regardless of enabled state. Edited matching-ID entries are never overwritten, and repeating the operation does not add duplicates. The server enforces the existing 100-tip and 50-message limits atomically; an over-limit operation adds nothing.
+
+**Undo template change** restores the previous list once, on this page only. Closing or reloading the page loses undo. A later change to the same list invalidates it; stale restore/add/undo requests cannot overwrite newer content. Cancel retains unsaved drafts. Confirmation explicitly discards unsaved visual edits in that list; advanced text drafts remain intact and must be explicitly reloaded before applying to changed content. Keep a copy before leaving the page. A failed request retains drafts; review current content before retrying.
+
 ## Included
 
 - Reference-inspired charcoal stats card with cyan username, aligned rating rows, and orange streak badge.

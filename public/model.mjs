@@ -1,3 +1,4 @@
+import {starterMessages} from './starter-templates.mjs';
 import {socialDefaults,socialWidget} from './socials-model.mjs';
 import {bonusDefaults} from './bonus-model.mjs';
 export const MODES = ['blitz', 'rapid', 'bullet'];
@@ -44,12 +45,7 @@ export function defaults() {
       ticker: { x: 70, y: 1350, w: 2420, h: 60, scale: 1, visible: true, locked: false, z: 1 }
     },
     layoutLocked: false, snap: true,
-    ticker: { mode: 'scroll', interval: 25, speed: 100, gap: 40, pause: 2, direction: 'left', paused: false, font: 28, opacity: 95, separator: '♟', messages: [
-      { id: 'follow', text: 'Enjoying the games? Follow {channel} on Twitch!', enabled: true },
-      { id: 'notify', text: 'Follow and enable notifications for the next stream.', enabled: true },
-      { id: 'session', text: 'Today: {wins}W · {losses}L · {draws}D', enabled: true },
-      { id: 'goal', text: 'Blitz climb: {blitz_rating} / {blitz_goal}', enabled: true }
-    ] },
+    ticker: { mode: 'scroll', interval: 25, speed: 100, gap: 40, pause: 2, direction: 'left', paused: false, font: 28, opacity: 95, separator: '♟', messages: starterMessages() },
     session: newSession(), undo: [], presets: {},
     api: { profile: null, stats: null, games: [], checkedAt: null, successAt: null, error: null, nextCheck: null }
   };
