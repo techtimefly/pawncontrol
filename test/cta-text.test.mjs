@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {parseMessages,serializeMessages} from '../public/cta-text.mjs';
 import {defaults,tickerMessages,tickerEntries} from '../public/model.mjs';
@@ -75,3 +76,18 @@ function fixture(t){
   const click=id=>get(`cta-text-${id}`).onclick();
   return {get,events,controls,click,state:()=>state,fail:(value=true)=>fail=value};
 }
+
+test('CTA help documents exactly the supported variables and their live substitution',()=>{
+  const html=readFileSync(new URL('../public/control.html',import.meta.url),'utf8');
+  const documented=[...html.matchAll(/data-cta-token="([a-z_]+)"/g)].map(m=>m[1]);
+  const expected=['channel','username','wins','losses','draws','streak',...['blitz','rapid','bullet'].flatMap(mode=>[mode+'_rating',mode+'_goal'])];
+  assert.deepEqual([...documented].sort(),expected.sort());
+  const state=defaults();state.overrides={blitz:1234,rapid:1456,bullet:1678};
+  for(const token of documented){
+    state.ticker.messages=[{id:'example',text:'Value: {'+token+'}',enabled:true}];
+    assert.equal(tickerMessages(state).length,1);assert.ok(!tickerMessages(state)[0].includes('{'+token+'}'),token);
+  }
+  state.overrides.blitz=null;state.ticker.messages=[{id:'example',text:'Missing {blitz_rating}',enabled:true}];assert.deepEqual(tickerMessages(state),[]);
+  state.ticker.messages=[{id:'example',text:'Literal {unknown}',enabled:true}];assert.deepEqual(tickerMessages(state),['Literal {unknown}']);
+  for(const heading of ['Simple list','Structured blocks','Append or replace','Limits','Multiline text','Preview'])assert.ok(html.includes('<h4>'+heading+'</h4>'));
+});

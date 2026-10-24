@@ -33,6 +33,9 @@ document.querySelector('#run').onclick=async()=>{
   for(const width of [380,320])for(const path of ['/control','/dock','/dock/cta']){
     const f=await make(path,width,900),doc=f.contentDocument;
     doc.querySelector(path==='/control'?'#nav [data-tab=ticker]':'#dock-cta-tab').click();await sleep(100);click(doc,'cta-text-toggle');await sleep(100);
+    doc.querySelector('#cta-variable-help summary').click();doc.querySelector('#cta-format-help summary').click();
+    check(doc.querySelectorAll('[data-cta-token]').length===12,`${path} all supported variables discoverable ${width}`);
+    check(doc.querySelector('#cta-variable-help').open&&doc.querySelector('#cta-format-help').open,`${path} help disclosures open ${width}`);
     check(!doc.querySelector('#cta-text-editor').hidden,`${path} advanced mode ${width}`);
     check(doc.documentElement.scrollWidth<=width,`${path} no horizontal overflow ${width}`);
     f.remove();

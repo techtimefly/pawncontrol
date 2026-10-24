@@ -306,6 +306,8 @@ The supplied tips are general chess advice; this widget displays your own text a
 
 ### Advanced text entry for CTA ticker
 
+Open **Available variables — names, scores and ratings** above the editor for all supported variables, descriptions and examples. This reference is available in the visual editor, advanced editor and both docks. **Examples and help** groups format instructions, append/replace safeguards, limits, multiline text and preview behavior into short sections.
+
 The visual editor remains the default in the full CTA panel, combined CTA dock and separate `/dock/cta`. Choose **Advanced text mode**, an explicit **Structured blocks** or **Simple list** format, and **Append** or **Replace all**. **Preview changes** validates every block and displays the resulting messages as plain text, with literal tokens. **Apply preview** saves only that preview. Replace all always requires confirmation, including an empty replacement. Cancel keeps your draft.
 
 Structured blocks are separated by a blank line. `Text` is required and nonblank; `Enabled` accepts only `yes` or `no`. New messages default to enabled. Example for new messages:
