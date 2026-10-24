@@ -1,3 +1,4 @@
+import {createCtaTextControls} from './cta-text-controls.mjs';
 import {createSocialsControls} from './socials-controls.mjs';
 import {fitCanvas} from './viewport.mjs';
 import { FIELDS, MODES, PRESETS, defaults, totals, streaks, rating, elapsed, clock, createMessageId,WIDGET_IDS } from './model.mjs';
@@ -43,12 +44,13 @@ async function start() {
   events.onerror=()=>{setConnection(false);void api('/api/state').catch(()=>{});};
   resizePreviews();
 }
-function accept(next,force=false) { if(!next || (next.instance===state?.instance && next.revision<state?.revision))return;state=next;render(force); }
+function accept(next,force=false) { if(!next || (next.instance===state?.instance && next.revision<state?.revision))return;state=next;ctaTextControls.update();render(force); }
 function setConnection(connected){
   for(const id of ['connection-dot','dock-connection-dot'])$(id).classList.toggle('connected',connected);
   for(const id of ['connection-label','dock-connection-label'])$(id).textContent=connected?'Server connected':'Reconnecting…';
 }
 async function setTab(next) {
+  if(tab==='ticker'&&next!==tab&&!await ctaTextControls.canLeave())return;
   if(tab==='tips'&&next!==tab&&!await bonusControls.canLeave())return;
   tab=next;
   if(dockMode==='combined') {
@@ -299,6 +301,7 @@ editor.addEventListener('pointerdown',e=>{
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
+const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});
 new ResizeObserver(resizePreviews).observe(document.querySelector('.desk'));window.addEventListener('resize',resizePreviews);

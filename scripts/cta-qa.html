@@ -1,0 +1,61 @@
+<!doctype html><meta charset="utf-8"><title>CTA regression QA</title><style>body{font:16px system-ui;background:#ddd}button{padding:12px}iframe{border:0;display:block;margin:20px 0;background:#333}pre{white-space:pre-wrap}</style>
+<button id="run">Run CTA browser checks</button><pre id="results">Ready</pre><div id="frames"></div>
+<script type="module">
+const out=document.querySelector('#results'),frames=document.querySelector('#frames'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const check=(ok,label)=>{if(!ok)throw Error(label);out.textContent+='PASS '+label+'\n';};
+const request=async(path,data)=>{const r=await fetch(path,data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const b=await r.json();if(!r.ok)throw Error(b.error);return b;};
+const action=a=>request('/api/action',a),state=()=>request('/api/state');
+const wait=async(fn)=>{for(let i=0;i<150;i++){if(fn())return;await sleep(40);}throw Error('Timed out');};
+async function make(path,w,h){const f=document.createElement('iframe');f.width=w;f.height=h;frames.append(f);await new Promise(r=>{f.onload=r;f.src=path;});await wait(()=>f.contentDocument.querySelector('.stats-card'));check(f.contentWindow.innerWidth===w&&f.contentWindow.innerHeight===h,`${path} measured viewport ${w}x${h}`);return f;}
+const click=(d,id)=>d.getElementById(id).click();
+function fill(input,value){input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));}
+async function dialog(d,yes){await wait(()=>d.querySelector('#modal').open);d.querySelector(yes?'#modal-form button[type=submit]':'#modal-cancel').click();await sleep(80);}
+async function setMessages(messages){const s=await state();await action({type:'ticker-messages',expectedMessages:s.ticker.messages,messages});await sleep(120);}
+document.querySelector('#run').onclick=async()=>{
+ out.textContent='';frames.replaceChildren();
+ try{
+  const initial=await state();
+  await setMessages([{id:'a',text:'♞ {channel}: {wins} {unknown}',enabled:true},{id:'b',text:'Second',enabled:true},{id:'c',text:'Third',enabled:false}]);
+  const full=await make('/control',1920,1080),d=full.contentDocument;
+  d.querySelector('[data-tab=ticker]').click();await sleep(100);check(d.querySelector('#cta-text-editor').hidden,'visual default');click(d,'cta-text-toggle');await sleep(80);
+  const source=d.querySelector('#cta-text-source');check(source.value.includes('ID: a')&&source.value.includes('Enabled: no'),'structured identity and enabled flags');
+  fill(source,'Text: "♞: {channel} {wins} <b>plain</b>\\nsecond line"');click(d,'cta-text-preview');check(!d.querySelector('#cta-text-apply').disabled&&!d.querySelector('#cta-text-results b'),'preview plain text and multiline');
+  click(d,'cta-text-apply');await dialog(d,false);check((await state()).ticker.messages.length===3,'replacement cancelled');
+  d.querySelector('#cta-text-format').value='simple';d.querySelector('#cta-text-format').dispatchEvent(new Event('change'));await dialog(d,false);check(source.value.includes('second line'),'format cancellation retains multiline draft');
+  d.querySelector('[data-tab=session]').click();await dialog(d,false);check(!d.querySelector('#ticker-tab').hidden,'navigation cancellation');
+  d.querySelector('[data-tab=session]').click();await dialog(d,true);d.querySelector('[data-tab=ticker]').click();await sleep(60);check(source.value.includes('second line'),'navigation return retains draft');
+  const fetchOriginal=full.contentWindow.fetch;full.contentWindow.fetch=async(url,...args)=>{if(url==='/api/action')throw Error('QA simulated interruption');return fetchOriginal.call(full.contentWindow,url,...args);};
+  click(d,'cta-text-apply');await dialog(d,true);await wait(()=>d.querySelector('#cta-text-status').textContent.includes('Not applied'));check(source.value.includes('second line'),'failed save retains input');full.contentWindow.fetch=fetchOriginal;
+  click(d,'cta-text-apply');await dialog(d,true);await wait(()=>d.querySelector('#cta-text-status').textContent.startsWith('Applied'));check((await state()).ticker.messages.length===1,'retry saved');
+  click(d,'cta-text-undo');await wait(()=>d.querySelector('#cta-text-status').textContent.includes('restored'));check((await state()).ticker.messages.length===3,'safe undo');
+  fill(source,'Text: append {unknown}');d.querySelector('#cta-text-operation').value='append';d.querySelector('#cta-text-operation').dispatchEvent(new Event('change'));click(d,'cta-text-preview');click(d,'cta-text-apply');click(d,'cta-text-apply');await wait(()=>d.querySelector('#cta-text-status').textContent.startsWith('Applied'));check((await state()).ticker.messages.length===4,'append double click saves once');
+  fill(source,'Text: retained');const saved=await state();await setMessages(saved.ticker.messages.map((m,i)=>i?m:{...m,text:'Remote'}));await wait(()=>d.querySelector('#cta-text-status').textContent.includes('changed elsewhere'));check(source.value==='Text: retained'&&d.querySelector('#cta-text-apply').disabled,'SSE conflict protects draft');
+  for(const width of [380,320])for(const path of ['/control','/dock','/dock/cta']){
+    const f=await make(path,width,900),doc=f.contentDocument;
+    doc.querySelector(path==='/control'?'#nav [data-tab=ticker]':'#dock-cta-tab').click();await sleep(100);click(doc,'cta-text-toggle');await sleep(100);
+    doc.querySelector('#cta-variable-help summary').click();doc.querySelector('#cta-format-help summary').click();
+    check(doc.querySelectorAll('[data-cta-token]').length===12,`${path} all supported variables discoverable ${width}`);
+    check(doc.querySelector('#cta-variable-help').open&&doc.querySelector('#cta-format-help').open,`${path} help disclosures open ${width}`);
+    check(!doc.querySelector('#cta-text-editor').hidden,`${path} advanced mode ${width}`);
+    check(doc.documentElement.scrollWidth<=width,`${path} no horizontal overflow ${width}`);
+    f.remove();
+  }
+  const s=await state();await action({type:'settings',settings:{ticker:{...s.ticker,mode:'rotate',interval:5,paused:true},widgets:{...s.widgets,ticker:{...s.widgets.ticker,visible:true}}}});
+  await setMessages([{id:'a',text:'First',enabled:true},{id:'b',text:'Second',enabled:true}]);
+  const overlay=await make('/overlay',1920,1080),od=overlay.contentDocument,line=od.querySelector('.ticker-line'),surface=od.querySelector('.ticker-surface');
+  await wait(()=>line.textContent==='First');
+  await setMessages([{id:'b',text:'Second',enabled:true},{id:'a',text:'First edited',enabled:true}]);await wait(()=>line.textContent==='First edited');check(true,'paused rotation retains current ID on reorder/edit');
+  for(let i=0;i<40;i++)await action({type:'timer',command:'pause'});await sleep(150);check(od.querySelector('.ticker-line')===line&&line.textContent==='First edited','high SSE rate preserves DOM/current item');
+  let ss=await state();await action({type:'settings',settings:{widgets:{...ss.widgets,ticker:{...ss.widgets.ticker,visible:false}}}});await sleep(120);ss=await state();await action({type:'settings',settings:{widgets:{...ss.widgets,ticker:{...ss.widgets.ticker,visible:true}}}});await sleep(120);check(line.textContent==='First edited','hidden/show continuity');
+  await setMessages([{id:'b',text:'Second',enabled:true}]);await wait(()=>line.textContent==='Second');check(true,'removed current item selects remaining');
+  ss=await state();await action({type:'settings',settings:{ticker:{...ss.ticker,mode:'scroll',paused:false}}});await sleep(250);const group=line.firstElementChild,offset=line.style.transform;await sleep(150);check(line.style.transform!==offset,'scroll advances');
+  for(let i=0;i<40;i++)await action({type:'timer',command:'pause'});check(line.firstElementChild===group,'irrelevant SSE does not rebuild scrolling group');
+  ss=await state();await action({type:'settings',settings:{ticker:{...ss.ticker,paused:true}}});await sleep(150);const frozen=line.style.transform;await sleep(150);check(line.style.transform===frozen,'scroll pause freezes');
+  await setMessages([{id:'b',text:'Long: '+('♞'.repeat(494)),enabled:true}]);await sleep(200);check(surface.textContent.includes('Long:'),'500-character message renders');
+  await setMessages([]);await wait(()=>surface.hidden);check(true,'empty set hides output');
+  check(JSON.stringify((await state()).socials)===JSON.stringify(initial.socials),'socials unchanged');
+  await setMessages([{id:'visible',text:'♞ Follow {channel}: {wins} wins! {unknown}',enabled:true}]);
+  out.textContent+='ALL PASS\n';
+ }catch(e){out.textContent+='FAIL '+e.stack;}
+};
+</script>

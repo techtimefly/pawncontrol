@@ -18,7 +18,7 @@ export function createTicker(wrapper) {
   wrapper.replaceChildren();
   const surface=make('div','ticker-surface'),tag=make('span','ticker-tag'),viewport=make('div','ticker-window'),line=make('span','ticker-line');
   viewport.append(line);surface.append(tag,viewport);wrapper.append(surface);
-  let clock=new TickerClock(performance.now()),mode,options,messages=[],contentKey='',width=0,needsMeasure=true,index=-1;
+  let clock=new TickerClock(performance.now()),mode,options,messages=[],contentKey='',width=0,needsMeasure=true,index=-1,ids=[],anchor=null;
   function buildScroll() {
     line.replaceChildren();line.classList.remove('ticker-rotation');
     const group=make('span','ticker-group');
@@ -31,7 +31,7 @@ export function createTicker(wrapper) {
   const observer=new ResizeObserver(()=>{needsMeasure=true;});observer.observe(viewport);
   function draw(now) {
     if(!wrapper.isConnected) { observer.disconnect();return; }
-    const ms=clock.update(now);
+    let ms=clock.update(now);
     if(messages.length && options) {
       if(mode==='rotate') {
         const next=rotationIndex(ms,options.interval,messages.length);
@@ -49,6 +49,12 @@ export function createTicker(wrapper) {
             const repeat=Math.min(100,Math.max(1,Math.ceil(viewport.clientWidth/natural)));
             for(let i=1;i<repeat;i++)for(const child of [...unit.childNodes])group.append(child.cloneNode(true));
             width=group.offsetWidth;line.append(group.cloneNode(true));needsMeasure=false;
+            if(anchor){
+              const position=ids.indexOf(anchor.id),child=group.children[Math.max(0,position)*2];
+              const distance=child?child.offsetLeft+(position>=0?Math.min(anchor.offset,child.offsetWidth):0):0;
+              clock.elapsed=(options.direction==='right'?width-distance:distance)/options.speed*1000;
+              ms=clock.elapsed;anchor=null;
+            }
           }
         }
         line.style.transform=`translateX(${scrollOffset(ms,width,options.speed,options.pause,options.direction)}px)`;
@@ -59,11 +65,29 @@ export function createTicker(wrapper) {
   requestAnimationFrame(draw);
   return { update(nextMessages,nextOptions,channel,background) {
     const now=performance.now();clock.update(now,nextOptions.paused);
-    if(mode!==nextOptions.mode) {mode=nextOptions.mode;clock=new TickerClock(now);clock.paused=nextOptions.paused;contentKey='';}
-    options=nextOptions;messages=nextMessages;
-    surface.style.background=background;surface.style.fontSize=`${options.font}px`;tag.textContent=channel.toUpperCase();
+    const modeChanged=mode!==nextOptions.mode;
+    if(modeChanged) {mode=nextOptions.mode;clock=new TickerClock(now);clock.paused=nextOptions.paused;contentKey='';anchor=null;}
+    const nextIds=nextMessages.map((m,i)=>typeof m==='string'?String(i):m.id);
+    const nextText=nextMessages.map(m=>typeof m==='string'?m:m.text);
+    const changed=JSON.stringify([ids,messages])!==JSON.stringify([nextIds,nextText]);
+    if(!modeChanged&&mode==='rotate'&&options&&(changed||options.interval!==nextOptions.interval)){
+      const oldIndex=rotationIndex(clock.elapsed,options.interval,messages.length);
+      const retained=nextIds.indexOf(ids[oldIndex]);
+      const nextIndex=retained>=0?retained:Math.min(oldIndex,Math.max(0,nextIds.length-1));
+      const fraction=(clock.elapsed%(options.interval*1000))/(options.interval*1000);
+      clock.elapsed=(nextIndex+(retained>=0?fraction:0))*nextOptions.interval*1000;
+      index=-1;
+    }
+    if(!modeChanged&&mode==='scroll'&&changed&&width>0&&options&&line.firstElementChild){
+      const distance=-scrollOffset(clock.elapsed,width,options.speed,options.pause,options.direction);
+      const children=[...line.firstElementChild.children];
+      const at=children.findLastIndex((child,i)=>i%2===0&&child.offsetLeft<=distance);
+      if(at>=0)anchor={id:ids[(at/2)%ids.length],offset:distance-children[at].offsetLeft};
+    }
+    options=nextOptions;messages=nextText;ids=nextIds;
+    surface.style.background=background;surface.style.fontSize=`${options.font}px`;if(tag.textContent!==channel.toUpperCase())tag.textContent=channel.toUpperCase();
     surface.hidden=!messages.length;
-    const key=JSON.stringify([messages,options.gap,options.separator,options.font]);
+    const key=JSON.stringify([ids,messages,options.gap,options.separator,options.font]);
     if(contentKey!==key) {
       contentKey=key;index=-1;
       if(mode==='scroll')buildScroll();
