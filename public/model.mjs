@@ -72,7 +72,8 @@ export function streaks(session) {
 export function rating(state, mode) { return state.overrides[mode] ?? state.api.stats?.[`chess_${mode}`]?.last?.rating ?? null; }
 export function elapsed(session, now = Date.now()) { return session.elapsed + (session.runningSince ? Math.max(0, now - session.runningSince) : 0); }
 export function clock(ms) { const s = Math.floor(ms / 1000); return [Math.floor(s/3600), Math.floor(s/60)%60, s%60].map(n => String(n).padStart(2,'0')).join(':'); }
-export function tickerMessages(state) {
+export const tickerMessages=state=>tickerEntries(state).map(m=>m.text);
+export function tickerEntries(state) {
   const t = totals(state.session), values = { username: state.username, channel: state.channel, wins: t.win, losses: t.loss, draws: t.draw, streak: streaks(state.session).label };
   for (const mode of MODES) { values[`${mode}_rating`] = rating(state, mode); values[`${mode}_goal`] = state.goals[mode]; }
   return state.ticker.messages.filter(m => m.enabled).map(m => {
@@ -82,7 +83,7 @@ export function tickerMessages(state) {
       if (values[key] == null) { missing = true; return ''; }
       return values[key];
     });
-    return missing ? null : text;
+    return missing || !text.trim() ? null : {...m,text};
   }).filter(Boolean);
 }
 export function historyStats(state) {

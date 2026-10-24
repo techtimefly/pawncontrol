@@ -304,6 +304,46 @@ Open **Chess tips** in the full panel or **Tips** in the combined dock. Add edit
 The supplied tips are general chess advice; this widget displays your own text and does not analyze live positions. Empty or disabled tips are skipped. Tip controls and credits controls share the same existing dock login.
 
 
+### Advanced text entry for CTA ticker
+
+The visual editor remains the default in the full CTA panel, combined CTA dock and separate `/dock/cta`. Choose **Advanced text mode**, an explicit **Structured blocks** or **Simple list** format, and **Append** or **Replace all**. **Preview changes** validates every block and displays the resulting messages as plain text, with literal tokens. **Apply preview** saves only that preview. Replace all always requires confirmation, including an empty replacement. Cancel keeps your draft.
+
+Structured blocks are separated by a blank line. `Text` is required and nonblank; `Enabled` accepts only `yes` or `no`. New messages default to enabled. Example for new messages:
+
+```text
+Text: Follow {channel}: more chess!
+Enabled: yes
+
+Text: Wins: {wins} — thanks for watching ♞
+Enabled: no
+```
+
+Loading saved messages includes an `ID: ...` line. Keep it to retain identity, ordering, enabled status and other saved metadata, including for messages with identical text. Omitted `Enabled` on an existing ID retains its saved value. IDs must belong to the current saved list and cannot repeat. Remove IDs for **Append**, which creates new messages. Unknown fields and duplicate fields are errors with line numbers. Limits match the server: **50 total messages**, **500 characters of text**, **80 characters per ID** (JavaScript UTF-16 length).
+
+For multiline text, significant outer whitespace or text starting with a quote, use a JSON quoted string:
+
+```text
+Text: "First line: {channel}\nSecond line: ♞ {wins}"
+Enabled: yes
+```
+
+The serializer uses this quoted form automatically. Values never execute HTML. Colons, Unicode and token spelling are preserved. Known tokens substitute only in live output; unknown tokens remain literal, and messages needing unavailable values are skipped as before.
+
+Simple list uses one nonempty trimmed line per new enabled message:
+
+```text
+Follow {channel} for more chess!
+Session wins: {wins}
+```
+
+**Simple list cannot represent IDs, disabled flags, other metadata or multiline messages.** Switching formats requires confirmation and starts a fresh draft; simple starts empty rather than flattening saved content. Cancel preserves the previous format and draft. Simple Replace all creates new IDs and enabled messages. Copy anything you need before confirming a format switch or reload.
+
+Drafts and one-step **Undo last text apply** live only in this browser page. Tab navigation warns and retains the draft; switching to the visual editor asks before discarding it. Reload, closing the page, signing out or restarting the browser loses drafts and undo. The browser's leave-page warning requires browser support and prior interaction. A subsequent message edit invalidates undo; behavior/appearance changes alone do not. Server-side expected-list comparison prevents apply or undo from overwriting newer messages. SSE never rewrites the text draft. On a connection/save failure, the input remains available for preview/retry. If the save reached the server but its response was lost, reload the current list after copying the draft to reconcile it; stale retries cannot append twice.
+
+Text actions change only messages, preserving ticker settings and unrelated state. Identical applies do not send a write. Unrelated SSE updates retain ticker DOM and clocks. Rotation keeps the current message ID and interval progress through edits/reorders when possible; removal/disable/unavailable text selects the item at the previous position, clamped to the remaining list, with a fresh interval. Scrolling preserves the visible message's leading-edge offset when it survives a content change; if removed, it starts at the first remaining item. Changed text widths may alter wrapping or scroll geometry. Empty sets hide output. Pause freezes playback; hiding alone keeps the viewer's clock running. Switching scroll/rotate starts that mode's clock. Clocks remain per viewer, and a newly loaded viewer starts at the beginning.
+
+Disposable browser regression fixture: `node scripts/cta-qa.mjs`, then open `http://127.0.0.1:3327/qa` and click **Run CTA browser checks**. It uses temporary SQLite state, no `.env` and no external polling. Stop with Ctrl+C when finished. Real OBS embedding still requires a separate check.
+
 ### Advanced text entry for chess tips
 
 The visual editor remains the default in the full panel and combined Tips dock. Choose **Advanced text mode**, select **Structured blocks** or **Simple list**, then choose **Append** or **Replace all**. **Preview changes** validates the draft and shows the complete resulting list before **Apply preview** can save it. Replacement requires confirmation, including replacing with an empty list.

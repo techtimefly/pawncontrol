@@ -1,7 +1,7 @@
 import {createSocials} from './socials-render.mjs';
 import { createTicker } from './ticker.mjs';
 import {createCredits,createTips} from './bonus-render.mjs';
-import { FIELDS, rating, totals, streaks, elapsed, clock, tickerMessages, historyStats,WIDGET_IDS } from './model.mjs';
+import { FIELDS, rating, totals, streaks, elapsed, clock, tickerEntries, historyStats,WIDGET_IDS } from './model.mjs';
 export const el=(tag,cls,text)=>{ const e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e; };
 const rgba=(hex,opacity)=>`${hex}${Math.round(opacity/100*255).toString(16).padStart(2,'0')}`;
 export function statValues(s) {
@@ -81,6 +81,6 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
 }
 function renderTicker(wrapper,s) {
   if(!wrapper._ticker)wrapper._ticker=createTicker(wrapper);
-  wrapper._ticker.update(tickerMessages(s),s.ticker,s.channel,rgba(s.theme.background,s.ticker.opacity));
+  wrapper._ticker.update(tickerEntries(s),s.ticker,s.channel,rgba(s.theme.background,s.ticker.opacity));
 }
 export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); }
