@@ -237,9 +237,9 @@ function resizePreviews() {
     const tw=document.querySelector('.ticker-preview-wrap');if(tw.clientWidth)$('ticker-preview').style.transform=`scale(${tw.clientWidth/1000})`;
   }
 }
-function modal(title,fields=[],message='') {
+function modal(title,fields=[],message='',submitLabel='Save') {
   return new Promise(resolve=>{
-    $('modal-title').textContent=title;const content=$('modal-content');content.replaceChildren();if(message)content.append(el('p','muted',message));
+    $('modal-form').querySelector('button[type=submit]').textContent=submitLabel;$('modal-title').textContent=title;const content=$('modal-content');content.replaceChildren();if(message)content.append(el('p','muted',message));
     const inputs={};for(const field of fields) { const label=el('label','',field.label),input=el('input');input.type=field.type||'text';input.value=field.value??'';input.required=true;for(const k of ['min','max','maxlength'])if(field[k]!=null)input.setAttribute(k,field[k]);label.append(input);content.append(label);inputs[field.key]=input; }
     $('modal-form').onsubmit=e=>{e.preventDefault();const values=Object.fromEntries(Object.entries(inputs).map(([k,input])=>[k,input.type==='number'?Number(input.value):input.value]));$('modal').close();resolve(values);};
     $('modal-cancel').onclick=()=>{$('modal').close();resolve(null);};$('modal').oncancel=()=>resolve(null);$('modal').showModal();
@@ -299,7 +299,7 @@ editor.addEventListener('pointerdown',e=>{
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
-const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField});
+const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});
 new ResizeObserver(resizePreviews).observe(document.querySelector('.desk'));window.addEventListener('resize',resizePreviews);
 setInterval(()=>{if(state){$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),state);}},1000);
