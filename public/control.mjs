@@ -1,3 +1,4 @@
+import {createStarterControls} from './starter-controls.mjs';
 import {createCtaTextControls} from './cta-text-controls.mjs';
 import {createSocialsControls} from './socials-controls.mjs';
 import {fitCanvas} from './viewport.mjs';
@@ -25,7 +26,7 @@ function action(a) {
     const result=await api('/api/action',command); accept(result.state,true);
     try { admin=await api('/api/admin'); renderAdmin(); } catch(e) { toast(`Saved, but admin refresh failed: ${e.message}`); }
     $('save-state').textContent='All changes saved'; return true;
-  }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state)renderTab();});
+  }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
 function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
@@ -44,7 +45,7 @@ async function start() {
   events.onerror=()=>{setConnection(false);void api('/api/state').catch(()=>{});};
   resizePreviews();
 }
-function accept(next,force=false) { if(!next || (next.instance===state?.instance && next.revision<state?.revision))return;state=next;ctaTextControls.update();render(force); }
+function accept(next,force=false) { if(!next || (next.instance===state?.instance && next.revision<state?.revision))return;state=next;starterControls.update();ctaTextControls.update();render(force); }
 function setConnection(connected){
   for(const id of ['connection-dot','dock-connection-dot'])$(id).classList.toggle('connected',connected);
   for(const id of ['connection-label','dock-connection-label'])$(id).textContent=connected?'Server connected':'Reconnecting…';
@@ -70,7 +71,7 @@ function render(force=false) {
   if(!state)return;
   const busy=document.activeElement?.matches('input,textarea,select');
   renderSessionSummary();
-  if((!busy||force)&&!dragging)renderTab();
+  if((!busy||force)&&!dragging&&!starterControls.busy)renderTab();
   else if(tab==='layout'&&!dragging)renderCanvas($('editor-canvas'),state,{editor:true});
   else if(tab==='ticker')renderTickerPreview();
   else if(tab==='socials')socialsControls.render();
@@ -241,6 +242,7 @@ function resizePreviews() {
 }
 function modal(title,fields=[],message='',submitLabel='Save') {
   return new Promise(resolve=>{
+    $('modal').classList.toggle('starter-dialog',title==='Starter templates');
     $('modal-form').querySelector('button[type=submit]').textContent=submitLabel;$('modal-title').textContent=title;const content=$('modal-content');content.replaceChildren();if(message)content.append(el('p','muted',message));
     const inputs={};for(const field of fields) { const label=el('label','',field.label),input=el('input');input.type=field.type||'text';input.value=field.value??'';input.required=true;for(const k of ['min','max','maxlength'])if(field[k]!=null)input.setAttribute(k,field[k]);label.append(input);content.append(label);inputs[field.key]=input; }
     $('modal-form').onsubmit=e=>{e.preventDefault();const values=Object.fromEntries(Object.entries(inputs).map(([k,input])=>[k,input.type==='number'?Number(input.value):input.value]));$('modal').close();resolve(values);};
@@ -301,6 +303,7 @@ editor.addEventListener('pointerdown',e=>{
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
+const starterControls=createStarterControls({getState:()=>state,action,confirmChange:message=>modal('Starter templates',[],message,'Confirm'),settle:()=>queue,render:()=>renderTab()});
 const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});

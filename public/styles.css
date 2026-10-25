@@ -33,3 +33,9 @@
 #cta-text-editor textarea{width:100%;resize:vertical;font-family:Consolas,monospace;min-height:240px}#cta-text-editor pre,.cta-text-preview-item{white-space:pre-wrap;overflow-wrap:anywhere}.cta-text-preview-item{border-bottom:1px solid var(--line);padding:10px 0}#cta-text-results{max-height:480px;overflow:auto}#cta-text-editor label,#cta-text-editor select{min-width:0;max-width:100%}#cta-text-editor .button-row{flex-wrap:wrap}#cta-text-editor button{white-space:normal;max-width:100%}#cta-text-status{overflow-wrap:anywhere}
 
 .cta-help{margin:14px 0;min-width:0}.cta-help summary{cursor:pointer;font-weight:650;overflow-wrap:anywhere}.cta-help h4{margin:18px 0 8px}.cta-help p,.cta-help li{font-size:12px;line-height:1.6;overflow-wrap:anywhere}.cta-help ul{padding-left:20px;margin:8px 0}.cta-help li+li{margin-top:6px}.cta-help code,.cta-help pre{white-space:pre-wrap;overflow-wrap:anywhere}.cta-help pre{font-size:12px;padding:10px;background:#10151e;border-radius:8px}
+/* Template previews remain readable in narrow OBS docks. */
+.starter-controls { margin: 12px 0; min-width: 0; }
+.starter-controls .button-row { flex-wrap: wrap; }
+.starter-controls button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+.starter-dialog #modal-content p { white-space: pre-wrap; overflow-wrap: anywhere; }
+dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box; }

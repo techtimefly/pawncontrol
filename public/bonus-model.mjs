@@ -1,3 +1,4 @@
+import {starterTips} from './starter-templates.mjs';
 import {socialDefaults,socialWidget} from './socials-model.mjs';
 export function bonusDefaults() {
   const section=(id,title,entries)=>({id,title,enabled:true,entries:entries.map(([label,detail],i)=>({id:`${id}-${i}`,label,detail,enabled:true}))});
@@ -9,11 +10,7 @@ export function bonusDefaults() {
       section('creative','Creative & Post-Production', [['Video Editing & Grading','DaVinci Resolve Studio'],['Generative & Graphic Design','Adobe Firefly / Adobe Express / Canva']]),
       section('thanks','Special Thanks', [['To the Chat, the Viewers, & the Open Source Community','']])
     ]},
-    tips:{interval:20,order:'sequential',font:30,items:[
-      {id:'threats',title:'Before you move',category:'Thinking',text:'Check your opponent’s checks, captures, and threats.',enabled:true},
-      {id:'develop',title:'Bring your pieces into play',category:'Opening',text:'Develop your minor pieces, protect your king, and fight for the center.',enabled:true},
-      {id:'endgame',title:'Activate your king',category:'Endgame',text:'As pieces leave the board, your king can become an active fighting piece.',enabled:true}
-    ]},
+    tips:{interval:20,order:'sequential',font:30,items:starterTips()},
     creditsPlayback:{seq:0,command:'stop'},tipsPlayback:{seq:0,index:0,paused:false},
     widgets:{credits:{x:0,y:0,w:2560,h:1440,scale:1,visible:false,locked:false,z:10},tips:{x:1860,y:650,w:640,h:260,scale:1,visible:false,locked:false,z:4}}
   };

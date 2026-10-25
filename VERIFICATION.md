@@ -1,5 +1,16 @@
 # Verification
 
+## Restore starter templates (October 24, 2026)
+
+Isolated LV426 checkout, new branch `feat/restore-starter-templates-20261024`, based on freshly fetched `origin/main` `f622fad14d1ea204618d827a986773677eefdf6d`.
+
+- Node **24.22.1**: **89/89 tests pass**. New tests pin all three tips and four CTA strings/order/flags, fresh-copy factories, neutral new-install CTA and preserved legacy content, list-only restore/add/undo, every other state field, limits, edited IDs/exact-content deduplication, idempotence, cancellation, double clicks, async confirmation/SSE races, failed-save retry, stale undo, removed current tip with paused/hidden state, and HTTP boundaries with authentication both enabled and disabled. Existing renderer, editor, session and persistence regressions also pass.
+- All application/test/script module syntax checks and `git diff --check` pass. Initial sandbox-only HTTP tests failed with loopback EACCES; the complete final suite ran with approved local HTTP access. No authentication defaults or production configuration changed.
+- Browser fixture `node scripts/starter-qa.mjs`, then `http://127.0.0.1:3328/qa` → **Run starter template checks**: **ALL CHECKS PASSED**. Uses disposable temporary data, loopback only, stubbed Chess.com responses, real app modules and HTTP/SSE; Ctrl+C stops it. No host installation or production data is used.
+- Actual measured iframe viewports: full panel Tips and CTA at 1280px; combined dock Tips and CTA at both 320px and 380px; separate CTA dock at both 320px and 380px. Each case checks exact preview, confirm/cancel/apply/undo/add, visual draft cancellation, retained advanced drafts, external SSE conflicts, simulated 503 failure and retry, list-only preservation, and no horizontal clipping in visual/advanced modes. Live overlay handles removal of the current custom tip while staying paused. Pixels inspected for desktop confirmation and narrow Tips/CTA controls; inspected browser console logs contained no warnings/errors.
+- Manual desktop browser checks additionally verified the neutral CTA, restore/undo, and advanced-draft retention. The in-app viewport override did not change its actual width, so narrow claims above rely on measured iframe viewports. An initial fixture retained too many SSE clients and stalled at the browser connection limit; the corrected fixture bounds clients and the final complete run passes.
+- Focused review scoped dialog styles to template confirmations, ensured the lock begins before asynchronous confirmation, suppressed visual blur autosave while choosing, and clarified stale undo status. Advanced drafts intentionally remain after a template operation and require explicit reload; undo is one-step and page-local. Matching IDs or exact content count as present for add-missing even if disabled. Actual OBS embedding/scene activation was not run. No merge, deployment, tag or release was performed.
+
 Verified locally on Windows with Node.js 24.19.0, October 23, 2026.
 
 ## Automated checks
