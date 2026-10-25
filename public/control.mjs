@@ -1,3 +1,4 @@
+import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
 import {createRecapControls} from './recap-controls.mjs';
 import {createStarterControls} from './starter-controls.mjs';
 import {createCtaTextControls} from './cta-text-controls.mjs';
@@ -9,6 +10,7 @@ import { el, renderCanvas, tickCanvas } from './render.mjs';
 const $=id=>document.getElementById(id);
 const dockMode=location.pathname==='/dock'||location.pathname==='/dock/'?'combined':location.pathname==='/dock/score'?'score':location.pathname==='/dock/cta'?'cta':null;
 if(dockMode){document.body.classList.add('dock-mode',`dock-${dockMode}`);document.title=`Pawn Control · ${dockMode==='combined'?'Stream':dockMode==='score'?'Score':'CTA'} dock`;}
+let editorLayout='landscape';
 let state, admin={}, events, tab='session', selected='stats', dragging=false, queue=Promise.resolve(), toastTimer;
 const title={recap:'Session recap & share',session:'Session overview',layout:'Layout studio',stats:'Stats & visibility',ticker:'CTA ticker',credits:'End credits',tips:'Chess tips',socials:'Social handle callouts',appearance:'Appearance',settings:'Settings & connections'};
 const dockTabs=[['dock-score-tab','session'],['dock-cta-tab','ticker'],['dock-credits-tab','credits'],['dock-tips-tab','tips'],['dock-socials-tab','socials']];
@@ -30,7 +32,19 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
+function editorState(){return layoutState(state,editorLayout);}
+function renderGuides(){
+ const host=$('layout-guides');host.replaceChildren();const guides=editorLayout==='portrait'?state.portrait.guides:state.landscapeGuides;const {width,height}=layoutDimensions(editorLayout);
+ for(const key of ['safeArea','board','camera']){const g=guides[key];if(!g.enabled)continue;const node=el('div',`composition-guide ${key}`,key==='safeArea'?'SAFE AREA':`${key.toUpperCase()} · OBS source`);const box=key==='safeArea'?{x:g.left,y:g.top,w:width-g.left-g.right,h:height-g.top-g.bottom}:g;Object.assign(node.style,{left:`${box.x}px`,top:`${box.y}px`,width:`${box.w}px`,height:`${box.h}px`});host.append(node);}
+}
+function renderGuideControls(){
+ const host=$('guide-fields');host.replaceChildren();const guides=editorLayout==='portrait'?state.portrait.guides:state.landscapeGuides;const {width,height}=layoutDimensions(editorLayout);
+ const update=(key,field,value)=>{const target=editorLayout;return change(s=>{const g=target==='portrait'?s.portrait.guides:s.landscapeGuides;g[key][field]=value;});};
+ for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));group.append(grid);}host.append(group);}
+ if(editorLayout==='portrait'){host.append(el('h3','','Portrait typography'));for(const [key,label,min,max] of [['font','Stats font',18,60],['padding','Card padding',10,60],['gap','Row gap',4,40],['tickerFont','CTA font',18,60],['tipsFont','Tips font',18,60],['socialsFont','Socials font',18,60],['creditsFont','Credits font',20,90],['creditsHeading','Credits heading',24,120],['creditsBrandSize','Credits brand',30,180],['creditsGap','Credits gap',10,180]])host.append(inputField(label,'number',state.portrait.typography[key],v=>changeLayout(s=>s.typography[key]=v),{min,max}));}
+}
 function showLogin() { recapControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
 async function start() {
   try { state=await api('/api/state'); admin=await api('/api/admin'); }
@@ -73,7 +87,7 @@ function render(force=false) {
   const busy=document.activeElement?.matches('input,textarea,select');
   renderSessionSummary();
   if((!busy||force)&&!dragging&&!starterControls.busy)renderTab();
-  else if(tab==='layout'&&!dragging)renderCanvas($('editor-canvas'),state,{editor:true});
+  else if(tab==='layout'&&!dragging)renderCanvas($('editor-canvas'),editorState(),{editor:true});
   else if(tab==='ticker')renderTickerPreview();
   else if(tab==='socials')socialsControls.render();
   const clone=structuredClone(state); for(const id of WIDGET_IDS)clone.widgets[id].visible=id==='stats'&&state.widgets.stats.visible;
@@ -153,21 +167,22 @@ function renderStats() {
   parts.append(inputField('Show avatar','checkbox',state.showAvatar,v=>change(s=>s.showAvatar=v)));
 }
 function renderLayout() {
-  renderCanvas($('editor-canvas'),state,{editor:true});
+ const widgetId=selected,view=editorState(),{width,height}=layoutDimensions(editorLayout);$('layout-select').value=editorLayout;renderGuides();renderGuideControls();
+  renderCanvas($('editor-canvas'),editorState(),{editor:true});
   for(const node of $('editor-canvas').querySelectorAll('[data-widget]'))node.classList.toggle('selected',node.dataset.widget===selected);
-  $('lock-layout').textContent=state.layoutLocked?'Unlock layout':'Lock layout';$('snap').checked=state.snap;
+  $('lock-layout').textContent=view.layoutLocked?'Unlock layout':'Lock layout';$('snap').checked=view.snap;
   const list=$('widget-list');list.replaceChildren();
   for(const id of WIDGET_IDS) {
-    const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=state.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);check.onchange=()=>change(s=>s.widgets[id].visible=check.checked);
+    const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=view.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);check.onchange=()=>changeLayout(s=>s.widgets[id].visible=check.checked);
     row.append(check,button(id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
   }
-  const fields=$('widget-fields');fields.replaceChildren();const w=state.widgets[selected];
+  const fields=$('widget-fields');fields.replaceChildren();const w=view.widgets[selected];
   fields.append(el('h3','',`${selected.charAt(0).toUpperCase()+selected.slice(1)} position`));
   const grid=el('div','form-grid');
-  for(const [k,label,min,max] of [['x','X',0,2560],['y','Y',0,1440],['w','Width',150,2560],['h','Height',40,1440],['z','Layer',0,50],['scale','Content scale',.5,2]])grid.append(inputField(label,'number',w[k],v=>change(s=>s.widgets[selected][k]=v),{min,max,step:k==='scale'?.05:1}));
-  fields.append(grid,inputField('Lock this widget','checkbox',w.locked,v=>change(s=>s.widgets[selected].locked=v)));
+  for(const [k,label,min,max] of [['x','X',0,width],['y','Y',0,height],['w','Width',150,width],['h','Height',40,height],['z','Layer',0,50],['scale','Content scale',.5,2]])grid.append(inputField(label,'number',w[k],v=>changeLayout(s=>s.widgets[widgetId][k]=v),{min,max,step:k==='scale'?.05:1}));
+  fields.append(grid,inputField('Lock this widget','checkbox',w.locked,v=>changeLayout(s=>s.widgets[widgetId].locked=v)));
   if(selected==='stats')fields.append(button('Fit card height',()=>{
-    const card=$('editor-canvas').querySelector('.stats-card');const h=Math.ceil(card.scrollHeight*w.scale);change(s=>{s.widgets.stats.h=Math.min(1440-s.widgets.stats.y,Math.max(40,h));});
+    const card=$('editor-canvas').querySelector('.stats-card');const h=Math.ceil(card.scrollHeight*w.scale);changeLayout(s=>{s.widgets.stats.h=Math.min(height-s.widgets.stats.y,Math.max(40,h));});
   },'secondary wide'));
   resizePreviews();
 }
@@ -217,24 +232,26 @@ function renderAdmin() {
   $('logout').hidden=!required;$('dock-logout').hidden=!required;$('dock-auth-status').hidden=required;
   $('auth-status').textContent=required?'Authentication enabled: controls require login; sources use read-only tokens.':'Authentication disabled: anyone who can reach this app can view data and change controls.';
   const query=required&&admin.token?`?token=${encodeURIComponent(admin.token)}`:'';
-  $('overlay-url').value=`${location.origin}/overlay${query}`;
-  $('credits-url').value=`${location.origin}/credits${query}`;
-  for(const [field,reveal] of [['overlay-url','reveal-url'],['credits-url','reveal-credits-url']]){
+  $('overlay-url').value=`${location.origin}/overlay${query}${query?'&':'?'}layout=landscape`;
+  $('credits-url').value=`${location.origin}/credits${query}${query?'&':'?'}layout=landscape`;
+  for(const kind of ['overlay','credits'])$(`portrait-${kind}-url`).value=`${location.origin}/${kind}${query}${query?'&':'?'}layout=portrait`;
+  for(const [field,reveal] of [['overlay-url','reveal-url'],['credits-url','reveal-credits-url'],['portrait-overlay-url','reveal-portrait-overlay-url'],['portrait-credits-url','reveal-portrait-credits-url']]){
     $(reveal).hidden=!required;if(!required)$(field).type='text';
   }
-  const select=$('layout-presets');select.replaceChildren();const first=el('option','','Load preset…');first.value='';select.append(first);
+  const select=$('layout-presets');select.replaceChildren();const first=el('option','','Load both layouts…');first.value='';select.append(first);
   for(const name of admin.presets||[]) { const o=el('option','',name);o.value=name;select.append(o); }
 }
 function resizePreviews() {
   bonusControls.resize();
   const wrap=document.querySelector('.stage-wrap');
   if(wrap && !wrap.closest('[hidden]')) {
-    const output=$('preview-size').value==='1080', width=output?1920:2560;
-    $('stage').style.width=`${width}px`; $('stage').style.height=`${output?1080:1440}px`;
-    $('stage').style.transform=`scale(${wrap.clientWidth/width})`;
-    const fit=fitCanvas($('editor-canvas'),width,output?1080:1440);
-    $('preview-label').textContent=`Viewport ${width} × ${output?1080:1440} · design 2560 × 1440 · scale ${fit.scale}`;
-    const guide=document.querySelector('.stage-guide');guide.style.zoom=output?'.75':'1';
+    const design=layoutDimensions(editorLayout),reduced=$('preview-size').value==='1080';
+    const width=reduced?(editorLayout==='portrait'?720:1920):design.width,height=reduced?(editorLayout==='portrait'?1280:1080):design.height;
+    wrap.style.aspectRatio=`${width} / ${height}`;wrap.style.maxWidth=editorLayout==='portrait'?'540px':'';
+    $('stage').style.width=`${width}px`;$('stage').style.height=`${height}px`;$('stage').style.transform=`scale(${wrap.clientWidth/width})`;
+    $('editor-canvas').style.width=`${design.width}px`;$('editor-canvas').style.height=`${design.height}px`;
+    const fit=fitCanvas($('editor-canvas'),width,height,design);Object.assign($('layout-guides').style,{width:`${design.width}px`,height:`${design.height}px`,transform:`scale(${fit.scale})`,transformOrigin:'0 0'});
+    $('preview-label').textContent=`Viewport ${width} × ${height} · design ${design.width} × ${design.height}`;
   }
   if(state) {
     const mini=document.querySelector('.mini-preview');const scale=Math.min((mini.clientWidth-20)/state.widgets.stats.w,(mini.clientHeight-10)/state.widgets.stats.h);
@@ -268,10 +285,12 @@ $('reset').onclick=()=>setTab('recap');
 $('edit-totals').onclick=async()=>{const t=totals(state.session),values=await modal('Correct session totals',['win','loss','draw'].map(k=>({key:k,label:k,type:'number',value:t[k],min:0,max:10000})),'Corrections change totals; recorded result order and streak stay intact.');if(values)action({type:'totals',totals:values});};
 $('active-mode').onchange=e=>change(s=>s.activeMode=e.target.value);
 $('show-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=true));$('hide-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=false));
-$('lock-layout').onclick=()=>change(s=>s.layoutLocked=!s.layoutLocked);$('snap').onchange=e=>change(s=>s.snap=e.target.checked);
-$('preview-size').onchange=e=>{$('preview-label').textContent=e.target.value==='1080'?'1920 × 1080 output · 75% scaling':'2560 × 1440';resizePreviews();toast(e.target.value==='1080'?'Output coordinates scale to 75%. Preview is fitted to this window.':'Editing native 1440p canvas.');};
+$('lock-layout').onclick=()=>changeLayout(s=>s.layoutLocked=!s.layoutLocked);$('snap').onchange=e=>changeLayout(s=>s.snap=e.target.checked);
+$('layout-select').onchange=async e=>{const target=e.target.value;await queue;if(dragging)return;editorLayout=target;renderLayout();};
+$('portrait-preset').onclick=async()=>{if(await modal('Reset portrait composition?',[],'Replace portrait positions, typography and guides with the portrait preset. Shared content and landscape stay unchanged.'))change(s=>s.portrait=portraitDefaults());};
+$('preview-size').onchange=()=>resizePreviews();
 $('save-layout').onclick=async()=>{const value=await modal('Save layout preset',[{key:'name',label:'Preset name',maxlength:40}]);if(value)action({type:'save-preset',name:value.name});};
-$('layout-presets').onchange=e=>{if(e.target.value)action({type:'load-preset',name:e.target.value});};
+$('layout-presets').onchange=async e=>{const name=e.target.value;if(name&&await modal('Load both layouts?',[],'Replace both compositions, appearance and shared overlay content with this preset. Session results and player identity stay unchanged.'))action({type:'load-preset',name});};
 $('delete-layout').onclick=async()=>{const value=await modal('Delete layout preset',[{key:'name',label:'Exact preset name',maxlength:40}]);if(value)action({type:'delete-preset',name:value.name});};
 $('add-message').onclick=()=>change(s=>s.ticker.messages.push({id:createMessageId(),text:'Follow {channel} for more chess!',enabled:true}));
 $('identity-form').onsubmit=async e=>{e.preventDefault();const username=$('username').value.trim(),channel=$('channel').value.trim();if(username!==state.username&&!await modal('Change Chess.com player?',[],'Cached stats and rating baselines will be cleared. Session scores remain.'))return;change(s=>{s.username=username;s.channel=channel;});};
@@ -288,20 +307,21 @@ $('import').onchange=async e=>{
 const editor=$('editor-canvas');
 editor.addEventListener('pointerdown',e=>{
   const widget=e.target.closest('[data-widget]');if(!widget)return;
-  const id=widget.dataset.widget;selected=id;const original=structuredClone(state.widgets[id]);
-  if(state.layoutLocked||original.locked){renderLayout();return;}
+  const view=editorState(),{width,height}=layoutDimensions(editorLayout);
+  const id=widget.dataset.widget;selected=id;const original=structuredClone(view.widgets[id]);
+  if(view.layoutLocked||original.locked){renderLayout();return;}
   e.preventDefault();dragging=true;widget.setPointerCapture(e.pointerId);
-  const resize=!!e.target.closest('.resize-handle'),startX=e.clientX,startY=e.clientY,scale=editor.getBoundingClientRect().width/2560;let next=original;
+  const resize=!!e.target.closest('.resize-handle'),startX=e.clientX,startY=e.clientY,scale=editor.getBoundingClientRect().width/width;let next=original;
   for(const n of editor.querySelectorAll('[data-widget]'))n.classList.toggle('selected',n===widget);
   const move=event=>{
     let dx=(event.clientX-startX)/scale,dy=(event.clientY-startY)/scale;
-    const snap=v=>state.snap?Math.round(v/20)*20:Math.round(v);
+    const snap=v=>view.snap?Math.round(v/20)*20:Math.round(v);
     next={...original};
-    if(resize){next.w=Math.max(150,Math.min(2560-original.x,snap(original.w+dx)));next.h=Math.max(40,Math.min(1440-original.y,snap(original.h+dy)));}
-    else {next.x=Math.max(0,Math.min(2560-original.w,snap(original.x+dx)));next.y=Math.max(0,Math.min(1440-original.h,snap(original.y+dy)));if(Math.abs(next.x-(2560-next.w))<20)next.x=2560-next.w;if(Math.abs(next.y-(1440-next.h))<20)next.y=1440-next.h;}
+    if(resize){next.w=Math.max(150,Math.min(width-original.x,snap(original.w+dx)));next.h=Math.max(40,Math.min(height-original.y,snap(original.h+dy)));}
+    else {next.x=Math.max(0,Math.min(width-original.w,snap(original.x+dx)));next.y=Math.max(0,Math.min(height-original.h,snap(original.y+dy)));if(Math.abs(next.x-(width-next.w))<20)next.x=width-next.w;if(Math.abs(next.y-(height-next.h))<20)next.y=height-next.h;}
     widget.style.left=`${next.x}px`;widget.style.top=`${next.y}px`;widget.style.width=`${next.w}px`;widget.style.height=`${next.h}px`;
   };
-  const finish=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;change(s=>s.widgets[id]=next);};
+  const finish=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;changeLayout(s=>s.widgets[id]=next);};
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
@@ -311,5 +331,7 @@ const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmCh
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});
 new ResizeObserver(resizePreviews).observe(document.querySelector('.desk'));window.addEventListener('resize',resizePreviews);
-setInterval(()=>{if(state){$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),state);}},1000);
+setInterval(()=>{if(state){$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),id==='editor-canvas'?editorState():state);}},1000);
 void start();
+
+for(const kind of ['overlay','credits']){const field=$(`portrait-${kind}-url`);$(`copy-portrait-${kind}-url`).onclick=async()=>{try{await navigator.clipboard.writeText(field.value);toast('Portrait URL copied.');}catch{toast('Reveal the URL and copy it manually.');}};$(`reveal-portrait-${kind}-url`).onclick=()=>field.type=field.type==='password'?'text':'password';}

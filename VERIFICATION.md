@@ -132,6 +132,21 @@ New branch from freshly fetched main `635f85e86b614ceb12268c6def7e13cd7ed2966f`,
 - Complete disposable CTA browser harness passes again, including desktop **1920x1080**, full panel and both docks at measured **320x900 / 380x900**, and overlay **1920x1080**. Both help disclosures opened and all 12 variables were present in every narrow view, with no horizontal overflow. Existing failure/retry, cancellation, stale-draft, repeated-click and playback checks also pass.
 - Pixel inspection confirmed wrapped variable descriptions at **320px** and the sectioned format help at **380px**. Keyboard Enter opens/closes the native disclosures with a visible focus outline; toggling them retains an edited draft. Console warnings/errors: none. Real OBS and physical close-prompt checks remain unrun as above; no private instance or deployed settings were used.
 
+## Portrait layouts (October 25, 2026)
+
+Implementation uses an isolated checkout on `feat/portrait-layout`, based on freshly fetched main `755bef660aaeac63e46fb8c4362d7b6b9e7f8546`. Portrait is a separate 1080 x 1920 composition; existing 2560 x 1440 landscape data remains the compatibility representation.
+
+- Added regression coverage for portrait fit at 1080 x 1920 and 720 x 1280, letterboxing in a landscape viewport, and simultaneous independent portrait/landscape resize with transparency preserved.
+- Focused output verification: `node --test test/viewport.test.mjs test/credits-source.test.mjs test/bonus.test.mjs` passed **25/25** tests during implementation. Syntax checks passed for `public/overlay.mjs`, `public/credits.mjs`, and `public/bonus-render.mjs`.
+- Output URLs select layout locally; state events and reconnects reapply that fixed selection. Editor guide elements are separate from output rendering. Portrait typography and long-text wrapping apply only to the explicit portrait composition.
+- Actual in-app Chromium browser checks used isolated data on loopback port 3312: 1080 x 1920 portrait (scale 1), 720 x 1280 portrait (scale 2/3), and 1920 x 1080 landscape (scale .75). Both sources remained connected concurrently and retained their URL-selected composition across editor selection changes. Missing ratings rendered Unrated; a recorded win reached both outputs.
+- Portrait numeric position, visibility, and drag edits persisted without changing landscape. A 20px editor drag mapped to approximately 40 logical portrait pixels with snapping. This exposed and fixed the editor canvas width used for pointer coordinates. Guides appeared only in the editor; output DOM had zero guide elements, and page/body backgrounds were transparent.
+- Long-text fixtures: 585-character tip fit without scroll overflow; 490-character rotating CTA fit by reducing font size; a 28-character channel left a bounded CTA text viewport. Long credits labels/details wrapped and the 184-character closing card stayed within the portrait frame. Font fitting preserves content but very long text may become small; shorten copy or enlarge its widget for readability.
+- Advanced CTA draft survived leaving for Layout studio, switching composition and returning. Combined dock score controls and live status remained functional. Browser output retained its last saved portrait position during server disconnection; restart/reconnect is also covered by the authenticated integration test.
+- Added authenticated integration coverage for two simultaneous SSE clients, independent edits, shared score events, reconnect after database restart, backup/preset round-trip, explicit output URLs, and read-only-token protections. The test uses a unique temporary database and stubbed Chess.com responses.
+- Final-head test and CI results are recorded in the draft PR. This repository has no configured lint script; syntax checks cover every tracked .mjs file and whitespace checks use git diff --check.
+- Physical OBS capture and platform-specific live integrations are outside the automated browser checks. No release, deployment, alpha-tag change, merge, or shutdown change is part of this work.
+
 ## Session Recap & Share verification
 
 - Isolated branch from freshly cloned `origin/main` at `755bef660aaeac63e46fb8c4362d7b6b9e7f8546`; no portrait-task checkout or commits used.
@@ -140,3 +155,12 @@ New branch from freshly fetched main `635f85e86b614ceb12268c6def7e13cd7ed2966f`,
 - Real in-app Chromium browser QA used a separate disposable SQLite directory and localhost port 3321 with polling disabled. No real user scores or upstream game data were used. Confirmed zero-state N/A, manual text across live score changes, explicit refresh to 2W/1L/1D (4 games, 50%, best streak 2), copied clipboard text, Session Complete template, atomic save/reset, frozen recap after server restart, text revision, saved stream link/hashtags after reload, and two-tab stale-save rejection with unsaved wording retained.
 - Responsive browser inspection: 390 x 844 and 1280 x 900; document width remained within viewport, form controls wrapped, and rating tile was adjusted to avoid broken words. Standalone score dock provides Return to session after recap/reset navigation.
 - Limits: clipboard-denial path tested with injected rejected/unavailable clipboard implementations; real browser copy succeeded. No real social platform posting, OBS host, deployment, alpha tag, release, or downloadable graphic tested/changed. The pre-existing occasional `API refresh: database is not open` shutdown diagnostic appeared in baseline and final passing suites; shutdown fix remains outside this PR.
+
+
+## Sequential Recap and Portrait integration (October 25, 2026)
+
+- Recap PR #14 merged first at e9772d940eec09d727e17d827e758348dfd60ba7; integrated that main into Portrait #15 without rewriting its branch history.
+- Resolved shared documentation, state/store migrations, server routes, control UI and CSS while preserving both features. Independent focused review found no merge-introduced blockers; all control IDs resolve uniquely.
+- Full combined Node 24.22.1 suite: 110/110 passed. Combined integration regression now verifies both layouts and private recap drafts through backup/import and restart, including absence of recap data from output SSE/read tokens.
+- Isolated browser QA on port 3313: portrait position edit, navigation to Share / Recap, saved custom draft retained across layout switches, completed recap frozen at 1W/0L/0D, atomic reset reflected as 0W/0L/0D in simultaneous portrait and landscape outputs. Existing per-feature browser matrices above remain applicable. No real OBS or external posting was exercised.
+- Final integration-head and post-merge main checks/results are linked in the PR conversation. No deployment, release, branch deletion, alpha-tag change or shutdown fix.
