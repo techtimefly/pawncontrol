@@ -39,3 +39,8 @@
 .starter-controls button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
 .starter-dialog #modal-content p { white-space: pre-wrap; overflow-wrap: anywhere; }
 dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box; }
+
+/* Share / recap keeps editable text readable on small control screens. */
+#recap-editor{border:0;padding:0;margin:0;min-width:0}#recap-tab .panel,#recap-tab label{min-width:0}#recap-tab textarea,#recap-tab input,#recap-tab select{box-sizing:border-box;width:100%;min-width:0;max-width:100%}#recap-tab textarea{resize:vertical;line-height:1.6}#recap-tab .button-row{flex-wrap:wrap;margin-top:12px}#recap-tab button{white-space:normal;max-width:100%;overflow-wrap:anywhere}#recap-status,#recap-context,.recap-variables{overflow-wrap:anywhere}#recap-status{min-height:1.6em}.recap-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}.recap-metrics .metric{min-width:0;padding:12px}.recap-metrics strong{overflow-wrap:anywhere;font-size:24px}#recap-tab details{margin-top:20px}#recap-tab details summary{cursor:pointer}#recap-snapshots{max-height:360px;overflow:auto}@media(max-width:700px){#recap-tab .two-column{grid-template-columns:minmax(0,1fr)}.recap-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.dock-mode #recap-tab .panel{padding:12px}}
+@media(max-width:700px){.recap-metrics .metric:last-child{grid-column:1 / -1}.recap-metrics .metric:last-child strong{font-size:20px;overflow-wrap:normal}}
+@media(min-width:701px){.recap-metrics .metric:last-child strong{font-size:16px;overflow-wrap:normal}}

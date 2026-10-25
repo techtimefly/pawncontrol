@@ -1,3 +1,4 @@
+import {recapDefaults,recapStats,recapSessionKey} from './public/recap-model.mjs';
 import {randomUUID} from 'node:crypto';
 import {validatePNG,validateIconRegistry,iconReferenced} from './lib/social-icons.mjs';
 import {PLATFORMS} from './public/socials-model.mjs';
@@ -108,17 +109,18 @@ export function createApp(config) {
           if(iconReferenced(state,id))throw Error('Icon is still used by an entry or preset');
           const icons={...state.socialIcons};delete icons[id];commit({...state,socialIcons:icons});return json(res,200,{ok:true});
         }
+        if(url.pathname==='/api/recap' && req.method==='GET')return json(res,200,{recap:state.recap??recapDefaults(),stats:recapStats(state),sessionKey:recapSessionKey(state)});
         if(url.pathname==='/api/admin' && req.method==='GET') return json(res,200,{authRequired:config.authRequired,...(config.authRequired?{token:config.token}:{}),presets:Object.keys(state.presets),canUndo:!!state.undo.length});
-        if(url.pathname==='/api/export' && req.method==='GET') { res.setHeader('Content-Disposition','attachment; filename="pawn-control-backup.json"'); return json(res,200,{version:1,settings:settingsOf(state),session:state.session,presets:state.presets,socialIcons:state.socialIcons}); }
+        if(url.pathname==='/api/export' && req.method==='GET') { res.setHeader('Content-Disposition','attachment; filename="pawn-control-backup.json"'); return json(res,200,{version:1,settings:settingsOf(state),session:state.session,presets:state.presets,socialIcons:state.socialIcons,recap:state.recap}); }
         if(url.pathname==='/api/action' && req.method==='POST') {
           const action=await body(req); commit(applyAction(state,action));
           if(action.type==='settings' || action.type==='import') void refresh();
-          return json(res,200,{ok:true,state:publicState()});
+          return json(res,200,{ok:true,state:publicState(),...(action.type==='recap'?{recap:state.recap,stats:recapStats(state),sessionKey:recapSessionKey(state)}:{})});
         }
         if(url.pathname==='/api/refresh' && req.method==='POST') { void refresh(); return json(res,202,{ok:true}); }
         return json(res,404,{error:'Not found'});
       }
-      const files={'/starter-templates.mjs':'starter-templates.mjs','/starter-controls.mjs':'starter-controls.mjs',...Object.fromEntries(['socials-model.mjs','socials-render.mjs','socials-controls.mjs'].map(f=>['/'+f,f])),...Object.fromEntries(Object.keys(PLATFORMS).map(k=>['/social-icons/'+k+'.svg','social-icons/'+k+'.svg'])),'/pawn-logo.svg':'pawn-logo.svg','/viewport.mjs':'viewport.mjs','/cta-text.mjs':'cta-text.mjs','/cta-text-controls.mjs':'cta-text-controls.mjs','/tips-text.mjs':'tips-text.mjs','/tips-text-controls.mjs':'tips-text-controls.mjs','/':'control.html','/control':'control.html','/dock':'control.html','/dock/':'control.html','/dock/score':'control.html','/dock/cta':'control.html','/overlay':'overlay.html','/credits':'credits.html','/credits.mjs':'credits.mjs','/credits-source.mjs':'credits-source.mjs','/bonus-model.mjs':'bonus-model.mjs','/bonus-render.mjs':'bonus-render.mjs','/bonus-controls.mjs':'bonus-controls.mjs','/control.mjs':'control.mjs','/overlay.mjs':'overlay.mjs','/render.mjs':'render.mjs','/ticker.mjs':'ticker.mjs','/model.mjs':'model.mjs','/styles.css':'styles.css'};
+      const files={'/recap-model.mjs':'recap-model.mjs','/recap-controls.mjs':'recap-controls.mjs','/starter-templates.mjs':'starter-templates.mjs','/starter-controls.mjs':'starter-controls.mjs',...Object.fromEntries(['socials-model.mjs','socials-render.mjs','socials-controls.mjs'].map(f=>['/'+f,f])),...Object.fromEntries(Object.keys(PLATFORMS).map(k=>['/social-icons/'+k+'.svg','social-icons/'+k+'.svg'])),'/pawn-logo.svg':'pawn-logo.svg','/viewport.mjs':'viewport.mjs','/cta-text.mjs':'cta-text.mjs','/cta-text-controls.mjs':'cta-text-controls.mjs','/tips-text.mjs':'tips-text.mjs','/tips-text-controls.mjs':'tips-text-controls.mjs','/':'control.html','/control':'control.html','/dock':'control.html','/dock/':'control.html','/dock/score':'control.html','/dock/cta':'control.html','/overlay':'overlay.html','/credits':'credits.html','/credits.mjs':'credits.mjs','/credits-source.mjs':'credits-source.mjs','/bonus-model.mjs':'bonus-model.mjs','/bonus-render.mjs':'bonus-render.mjs','/bonus-controls.mjs':'bonus-controls.mjs','/control.mjs':'control.mjs','/overlay.mjs':'overlay.mjs','/render.mjs':'render.mjs','/ticker.mjs':'ticker.mjs','/model.mjs':'model.mjs','/styles.css':'styles.css'};
       if(req.method==='GET' && files[url.pathname]) {
         const file=files[url.pathname], ext=file.split('.').pop();
         res.writeHead(200,{'Content-Type':{html:'text/html; charset=utf-8',mjs:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml'}[ext]});
