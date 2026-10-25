@@ -1,6 +1,6 @@
 # Pawn Control
 
-A self-hosted chess broadcast desk for **twitch.tv/jamespawn**, pulling public Chess.com data for a configurable player. Runs locally or as a Linux service on your LAN, with independent **2560 x 1440 landscape** and **1080 x 1920 portrait** compositions that fit OBS Browser Sources proportionally.
+A self-hosted, streaming-platform-neutral chess broadcast desk, pulling public Chess.com data for a configurable player. Runs locally or as a Linux service on your LAN, with independent **2560 x 1440 landscape** and **1080 x 1920 portrait** compositions that fit OBS Browser Sources proportionally.
 
 > Main session page
 
@@ -110,7 +110,7 @@ Only the selected content list changes. Position, theme, appearance, timing, spe
 
 ## Using the control panel
 
-1. Open `/control` and sign in with CONTROL_PASSWORD when authentication is enabled. In **Settings**, confirm the player/channel and copy the complete OBS overlay URL (token-bearing when authentication is enabled).
+1. Open `/control` and sign in with CONTROL_PASSWORD when authentication is enabled. In **Settings**, confirm the Chess.com player and optional channel / creator name and copy the complete OBS overlay URL (token-bearing when authentication is enabled).
 2. In **Layout studio**, enable the widgets you want, drag/resize them, or enter exact coordinates. Use **Lock layout** to prevent accidental dragging. **Save preset** stores a reusable layout; it does not reset scores.
 3. In **Stats & visibility**, choose visible rows and their order, the active time control, rating goals, and any manual rating overrides. The active time control controls the highlight and time-control-dependent metrics.
 4. In **Session**, record each win/loss/draw. Use Undo for mistakes, Correct totals for count adjustments, and history edits when a result was recorded incorrectly. Start/pause/resume the clock or use Restart timer without clearing results. Reset session starts a new zero-score session.
@@ -147,6 +147,8 @@ Official references: [Published-Data API](https://www.chess.com/news/view/publis
 New installations default to continuous scrolling. Existing installations retain their saved mode: select **CTA ticker → Display mode → Continuous scroll** for moving text and make sure **Pause ticker** is unchecked. Message rotation shows one CTA at a time, changing every configured interval (25 seconds by default).
 
 `{username}`, `{channel}`, `{wins}`, `{losses}`, `{draws}`, `{streak}`, `{blitz_rating}`, `{rapid_rating}`, `{bullet_rating}`, `{blitz_goal}`, `{rapid_goal}`, `{bullet_goal}`. A message with an unavailable rating is skipped. Unknown tokens remain visible so they can be corrected. No enabled/usable messages means the ticker hides. All messages are plain text, never HTML.
+
+**Channel / creator name** in Settings is optional display text, independent of your Chess.com username and the optional Share / Recap stream link. Names may contain spaces, Unicode and punctuation, up to 80 UTF-16 code units (the browser input limit); line breaks and control characters are rejected. The settings form trims outer whitespace. Blank or whitespace-only names render `{channel}` as **this channel** (for example, “Follow this channel for more chess!”), and the ticker badge as **LIVE** in both landscape and portrait. Names are displayed as text, never HTML; long badges are truncated visually to leave room for messages. New installations start with a blank creator name and neutral Pawn Control branding. Existing saved credit branding is preserved. Existing saved names, custom templates and backups remain intact under the compatible internal `channel` key. Backup import/export preserves the value, including blank; layout preset loading and session/content resets do not change your identity. Recaps continue to use `{username}` for the Chess.com player and `{stream_link}` for your separately configured link.
 
 ## Linux systemd service setup
 
@@ -240,7 +242,7 @@ Optional container image: `docker compose up -d --build` after configuring `.env
 
 ### Secrets and Git
 
-Commit `.env.example` with placeholders, never the real `.env`. With authentication enabled, the two application secrets are CONTROL_PASSWORD and OVERLAY_TOKEN. Generate them in a local checkout with `npm run setup`, or supply them through the service environment. Chess.com public data needs no API key, and the Twitch channel link needs no Twitch token. Keep SSH deployment keys outside the project and never put them in browser code. If GitHub Actions deployment is added, store deployment credentials in GitHub Actions secrets, not repository files.
+Commit `.env.example` with placeholders, never the real `.env`. With authentication enabled, the two application secrets are CONTROL_PASSWORD and OVERLAY_TOKEN. Generate them in a local checkout with `npm run setup`, or supply them through the service environment. Chess.com public data needs no API key, and no streaming-platform account or token is required. Keep SSH deployment keys outside the project and never put them in browser code. If GitHub Actions deployment is added, store deployment credentials in GitHub Actions secrets, not repository files.
 
 The ignore rules exclude `.env` variants (except `.env.example`), runtime data, databases, logs, and common private-key files. The Docker build context excludes these too. Ignore rules do not remove already tracked secrets; if a real credential is ever committed, rotate it and remove it from history as appropriate. Application files live at the repository root; development preview data and credentials must remain outside the repository.
 

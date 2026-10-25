@@ -39,7 +39,7 @@ test('atomic CTA action preserves all settings and session, rejects stale/repeat
   assert.deepEqual(applyAction(next,{type:'ticker-messages',expectedMessages:messages,messages:before.ticker.messages}),before);
 });
 test('tokens substitute without modifying sources; unknown tokens remain; unavailable and empty skip',()=>{
-  const s=defaults();s.ticker.messages=parseMessages('Text: ♞ {channel}: {wins} {unknown}\n\nText: {blitz_rating}\n\nText: disabled\nEnabled: no','structured').items;
+  const s=defaults();s.channel='Creator Name';s.ticker.messages=parseMessages('Text: ♞ {channel}: {wins} {unknown}\n\nText: {blitz_rating}\n\nText: disabled\nEnabled: no','structured').items;
   const source=serializeMessages(s.ticker.messages);
   assert.deepEqual(tickerMessages(s),[`♞ ${s.channel}: 0 {unknown}`]);s.overrides.blitz=0;
   assert.deepEqual(tickerEntries(s).map(m=>m.id),s.ticker.messages.slice(0,2).map(m=>m.id));assert.equal(tickerMessages(s)[1],'0');assert.equal(serializeMessages(s.ticker.messages),source);

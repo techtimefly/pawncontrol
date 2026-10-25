@@ -1,3 +1,4 @@
+import {channelLabel} from './identity.mjs';
 // A clock independent of renders: API updates must not restart message rotation.
 export class TickerClock {
   constructor(now=0) { this.elapsed=0; this.last=now; this.paused=false; }
@@ -26,6 +27,7 @@ const make=(tag,cls,text)=>{const node=document.createElement(tag);node.classNam
 export function createTicker(wrapper) {
   wrapper.replaceChildren();
   const surface=make('div','ticker-surface'),tag=make('span','ticker-tag'),viewport=make('div','ticker-window'),line=make('span','ticker-line');
+  const tagText=make('span','ticker-tag-text');tag.append(tagText);
   viewport.append(line);surface.append(tag,viewport);wrapper.append(surface);
   let clock=new TickerClock(performance.now()),mode,options,messages=[],contentKey='',width=0,needsMeasure=true,index=-1,ids=[],anchor=null,fitKey='';
   function buildScroll() {
@@ -99,7 +101,7 @@ export function createTicker(wrapper) {
     }
     options=nextOptions;messages=nextText;ids=nextIds;
     if(mode!=='rotate'||!options.fitText){line.style.fontSize='';fitKey='';}
-    surface.style.background=background;surface.style.fontSize=`${options.font}px`;if(tag.textContent!==channel.toUpperCase())tag.textContent=channel.toUpperCase();
+    surface.style.background=background;surface.style.fontSize=`${options.font}px`;const label=channelLabel(channel);if(tagText.textContent!==label)tagText.textContent=label;tag.title=label;
     surface.hidden=!messages.length;
     const key=JSON.stringify([ids,messages,options.gap,options.separator,options.font]);
     if(contentKey!==key) {

@@ -3,7 +3,7 @@ import {socialDefaults,socialWidget} from './socials-model.mjs';
 export function bonusDefaults() {
   const section=(id,title,entries)=>({id,title,enabled:true,entries:entries.map(([label,detail],i)=>({id:`${id}-${i}`,label,detail,enabled:true}))});
   return {
-    credits:{brand:'JAMES PAWN',subtitle:'A Production of Island Tech Solutions',final:'// END TRANSMISSION',timing:'duration',duration:60,speed:80,font:48,heading:64,brandSize:100,gap:60,background:'#000000',opacity:100,accent:'#00e5ff',headingColor:'#ffd700',detailColor:'#70a1ff',loop:false,sections:[
+    credits:{brand:'PAWN CONTROL',subtitle:'Thanks for watching',final:'// END TRANSMISSION',timing:'duration',duration:60,speed:80,font:48,heading:64,brandSize:100,gap:60,background:'#000000',opacity:100,accent:'#00e5ff',headingColor:'#ffd700',detailColor:'#70a1ff',loop:false,sections:[
       section('broadcast','Broadcasting & Control', [['Broadcast Suite & Hardware','OBS Studio + StreamDeck + DJI Osmo Pocket 3']]),
       section('plugins','OBS Automation & Plugins', [['Scene Transitions & Movement','Move Plugin'],['AI Voice & Audio Isolation','Local Vocal'],['Automation & Event Logic','Advanced Scene Switcher'],['File Management','Record Rename'],['Layout & Structure Management','Scene Collection Manager & Scene Anchor'],['Audio Visualizer','WaveForm']]),
       section('hardware','The Battlestation', [['Operating System','Windows 11 Pro'],['Motherboard','Gigabyte B650 Gaming X AX V2'],['Processor','AMD Ryzen 7 7700X'],['Graphics Processing','NVIDIA GeForce RTX 3080 (12GB VRAM)'],['System Memory','Crucial Pro DDR5-6000 (32GB Dual-Channel)'],['Audio Monitoring','Microsoft Surface Headphones Gen 1']]),

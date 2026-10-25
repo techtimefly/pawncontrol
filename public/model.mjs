@@ -1,3 +1,4 @@
+import {channelText} from './identity.mjs';
 import {portraitDefaults,guideDefaults} from './layouts.mjs';
 import {starterMessages} from './starter-templates.mjs';
 import {socialDefaults,socialWidget} from './socials-model.mjs';
@@ -35,7 +36,7 @@ export function defaults() {
     socials:socialDefaults(),socialIcons:{},socialsPlayback:{seq:0,paused:false,command:null,currentId:null},
     credits:bonus.credits,tips:bonus.tips,creditsPlayback:bonus.creditsPlayback,tipsPlayback:bonus.tipsPlayback,
     portrait:portraitDefaults(),landscapeGuides:guideDefaults(),
-    version: 1, username: 'your_chess_username', channel: 'jamespawn', activeMode: 'blitz', showAvatar: false,
+    version: 1, username: 'your_chess_username', channel: '', activeMode: 'blitz', showAvatar: false,
     fields: Object.keys(FIELDS).map(id => ({ id, visible: ['username','blitz','rapid','bullet','session','streak'].includes(id) })),
     parts: { win: true, loss: true, draw: true },
     goals: { blitz: 1500, rapid: 1500, bullet: 1000 }, overrides: { blitz: null, rapid: null, bullet: null },
@@ -72,7 +73,7 @@ export function elapsed(session, now = Date.now()) { return session.elapsed + (s
 export function clock(ms) { const s = Math.floor(ms / 1000); return [Math.floor(s/3600), Math.floor(s/60)%60, s%60].map(n => String(n).padStart(2,'0')).join(':'); }
 export const tickerMessages=state=>tickerEntries(state).map(m=>m.text);
 export function tickerEntries(state) {
-  const t = totals(state.session), values = { username: state.username, channel: state.channel, wins: t.win, losses: t.loss, draws: t.draw, streak: streaks(state.session).label };
+  const t = totals(state.session), values = { username: state.username, channel: channelText(state.channel), wins: t.win, losses: t.loss, draws: t.draw, streak: streaks(state.session).label };
   for (const mode of MODES) { values[`${mode}_rating`] = rating(state, mode); values[`${mode}_goal`] = state.goals[mode]; }
   return state.ticker.messages.filter(m => m.enabled).map(m => {
     let missing = false;
