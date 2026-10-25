@@ -7,6 +7,15 @@ export class TickerClock {
   }
 }
 export function rotationIndex(ms,interval,count) { return count ? Math.floor(ms/(Math.max(1,interval)*1000))%count : 0; }
+// Measure after each font change: wrapping is nonlinear, so a single height
+// ratio is not sufficient. The callback applies the size and measures the DOM.
+export function fitTextFont(requested,width,height,measure) {
+  const fits=size=>{const box=measure(size);return box.width<=width+1&&box.height<=height+1;};
+  if(fits(requested))return requested;
+  let low=1,high=requested;
+  for(let i=0;i<12;i++){const mid=(low+high)/2;if(fits(mid))low=mid;else high=mid;}
+  measure(low);return low;
+}
 export function scrollOffset(ms,width,speed,pause,direction) {
   if(width<=0)return 0;
   const travel=width/Math.max(1,speed)*1000, hold=Math.max(0,pause)*1000;
@@ -18,7 +27,7 @@ export function createTicker(wrapper) {
   wrapper.replaceChildren();
   const surface=make('div','ticker-surface'),tag=make('span','ticker-tag'),viewport=make('div','ticker-window'),line=make('span','ticker-line');
   viewport.append(line);surface.append(tag,viewport);wrapper.append(surface);
-  let clock=new TickerClock(performance.now()),mode,options,messages=[],contentKey='',width=0,needsMeasure=true,index=-1,ids=[],anchor=null;
+  let clock=new TickerClock(performance.now()),mode,options,messages=[],contentKey='',width=0,needsMeasure=true,index=-1,ids=[],anchor=null,fitKey='';
   function buildScroll() {
     line.replaceChildren();line.classList.remove('ticker-rotation');
     const group=make('span','ticker-group');
@@ -36,6 +45,10 @@ export function createTicker(wrapper) {
       if(mode==='rotate') {
         const next=rotationIndex(ms,options.interval,messages.length);
         if(next!==index) { index=next;line.textContent=messages[index]; }
+        if(options.fitText){
+          const key=JSON.stringify([line.textContent,viewport.clientWidth,viewport.clientHeight,options.font]);
+          if(key!==fitKey&&viewport.clientWidth>0&&viewport.clientHeight>0){fitKey=key;fitTextFont(options.font,viewport.clientWidth,Math.max(1,viewport.clientHeight-2),size=>{line.style.fontSize=`${size}px`;return {width:line.scrollWidth,height:line.scrollHeight};});}
+        }
       } else {
         if(needsMeasure && viewport.clientWidth>0) {
           // Repeat short sets until they fill the viewport, then duplicate the
@@ -85,6 +98,7 @@ export function createTicker(wrapper) {
       if(at>=0)anchor={id:ids[(at/2)%ids.length],offset:distance-children[at].offsetLeft};
     }
     options=nextOptions;messages=nextText;ids=nextIds;
+    if(mode!=='rotate'||!options.fitText){line.style.fontSize='';fitKey='';}
     surface.style.background=background;surface.style.fontSize=`${options.font}px`;if(tag.textContent!==channel.toUpperCase())tag.textContent=channel.toUpperCase();
     surface.hidden=!messages.length;
     const key=JSON.stringify([ids,messages,options.gap,options.separator,options.font]);

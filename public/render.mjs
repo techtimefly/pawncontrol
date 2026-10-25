@@ -18,6 +18,7 @@ export function statValues(s) {
   };
 }
 export function renderCanvas(canvas,s,{editor=false}={}) {
+  canvas.dataset.layout=s.layout==='portrait'?'portrait':'landscape';
   canvas.style.setProperty('--accent',s.theme.accent); canvas.style.setProperty('--card-bg',rgba(s.theme.background,s.theme.opacity));
   canvas.style.setProperty('--ink',s.theme.foreground); canvas.style.setProperty('--quiet',s.theme.muted);
   canvas.style.setProperty('--streak',s.theme.streak); canvas.style.setProperty('--radius',`${s.theme.radius}px`);
@@ -36,7 +37,7 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
     }
     else if(id==='tips') {
       if(!wrapper._tips){const content=el('div','tips-content');wrapper.append(content);wrapper._tips=createTips(content);}
-      wrapper._tips.update({...s.tips,font:s.tips.font*w.scale},s.tipsPlayback);
+      wrapper._tips.update({...s.tips,font:s.tips.font*w.scale,fitText:s.layout==='portrait'},s.tipsPlayback);
     }
     else if(id==='socials') {
       if(!wrapper._socials){const content=el('div','socials-root');wrapper.append(content);wrapper._socials=createSocials(content);}
@@ -81,6 +82,6 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
 }
 function renderTicker(wrapper,s) {
   if(!wrapper._ticker)wrapper._ticker=createTicker(wrapper);
-  wrapper._ticker.update(tickerEntries(s),s.ticker,s.channel,rgba(s.theme.background,s.ticker.opacity));
+  wrapper._ticker.update(tickerEntries(s),{...s.ticker,fitText:s.layout==='portrait'},s.channel,rgba(s.theme.background,s.ticker.opacity));
 }
 export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); }

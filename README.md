@@ -1,6 +1,6 @@
 # Pawn Control
 
-A self-hosted chess broadcast desk for **twitch.tv/jamespawn**, pulling public Chess.com data for a configurable player. Runs locally or as a Linux service on your LAN, with a **2560 x 1440 logical design** that fits any OBS Browser Source size.
+A self-hosted chess broadcast desk for **twitch.tv/jamespawn**, pulling public Chess.com data for a configurable player. Runs locally or as a Linux service on your LAN, with independent **2560 x 1440 landscape** and **1080 x 1920 portrait** compositions that fit OBS Browser Sources proportionally.
 
 > Main session page
 
@@ -40,7 +40,7 @@ For a local preview, keep HOST=127.0.0.1. For access from another device, set HO
 | Optional Docker deployment | Docker Engine and the Docker Compose plugin; the image includes Node, so the host does not need a separate Node installation. |
 | Networking | Outbound HTTPS to `api.chess.com`; streaming PC access to the configured server port (3000 by default). |
 | Browser/OBS | A modern browser for controls and OBS Browser Source support; custom browser docks for the controller dock pages. |
-| Canvas | Browser Source dimensions match your intended scene area; the 2560 x 1440 design fits proportionally. |
+| Canvas | Browser Source dimensions match your intended scene area; the selected landscape or portrait design fits proportionally. |
 
 Set deployment values in the untracked `.env` before first startup:
 
@@ -100,7 +100,7 @@ Only the selected content list changes. Position, theme, appearance, timing, spe
 
 - Reference-inspired charcoal stats card with cyan username, aligned rating rows, and orange streak badge.
 - Separate scoreboard and CTA ticker; each widget can be shown, dragged, resized, layered, and locked.
-- 1440p layout editor, edge/grid snapping, numeric positioning, and 1080p preview.
+- Landscape/portrait layout editor, edge/grid snapping, numeric positioning, reduced-size preview, and optional safe-area/board/camera guides.
 - Per-stat visibility and ordering; Minimal, Session, Full, and custom presets.
 - Click W/L/D scores to increment, dedicated plus/minus controls, result recording, undo, editable ordered result history, reset, and session timer.
 - Ticker with editable/reorderable messages, enabled flags, scrolling or rotation, speed, direction, timing, pause, dynamic values, and appearance controls.
@@ -383,7 +383,19 @@ Drafts stay intact during realtime updates and when switching panel/dock tabs. L
 
 ## Resolution and fit policy
 
-Both /overlay and /credits contain the complete 2560 x 1440 design inside the actual Browser Source viewport. Scale is min(width / 2560, height / 1440), with equal margins on opposite sides. 1280 x 720, 1920 x 1080, 2560 x 1440 and 3840 x 2160 fill exactly. Other ratios, including 2560 x 1400, ultrawide and portrait, have transparent margins; nothing stretches or crops. Portrait is the same composition scaled down, not a new vertical layout.
+Both `/overlay` and `/credits` select their composition through an explicit URL parameter. `?layout=landscape` uses 2560 x 1440; `?layout=portrait` uses a separate 1080 x 1920 composition. Existing URLs without a layout parameter retain landscape. Changing the editor selector never changes an already open output source, so both compositions can run simultaneously with shared live scores, ratings, tips, CTA messages, socials and credits.
+
+Scale is `min(viewportWidth / designWidth, viewportHeight / designHeight)`, with equal transparent margins on opposite sides. Landscape fills 1280 x 720, 1920 x 1080, 2560 x 1440 and 3840 x 2160. Portrait fills 1080 x 1920 and 720 x 1280. Other aspect ratios retain the chosen composition without stretching, cropping or breakpoint reflow.
+
+### One broadcast, two layouts
+
+Select **Landscape** or **Portrait** in **Layout studio**. Positions, sizes, visibility, widget scale, locks and snapping are saved separately. The initial portrait preset places a compact two-column stats header above a clear board region, with scores and CTA below. The **Portrait typography** controls tune portrait card, ticker, tips, socials and credits text independently; the existing appearance/content editors retain their landscape typography controls. Colors and content remain shared. Use Layout studio to toggle portrait widgets; existing dock/editor visibility controls continue to control landscape.
+
+Optional safe-area guides have configurable top/right/bottom/left insets. Board and camera reservations have configurable rectangles and individual enable switches. They are editor guides only: no board, camera, placeholder or guide is rendered by the broadcast output. Supply board and camera as separate OBS sources underneath the transparent overlay, and position the widgets around those regions.
+
+Settings exposes separate landscape and portrait overlay URLs, and End credits exposes both credits URLs. For open mode, use `/overlay?layout=portrait` or `/credits?layout=portrait`; authenticated URLs also include the existing read-only `token` parameter. Copy the full URL, including both parameters. Set portrait Browser Sources to **1080 x 1920** or **720 x 1280** and landscape sources to their intended 16:9 dimensions.
+
+Upgrading retains the exact existing landscape settings and adds the portrait preset. Saved presets and exported backups contain both compositions and their guides; loading a preset restores both layouts and shared presentation settings, without resetting scores. Older presets/backups gain the portrait defaults. Explicitly restoring a backup still restores its saved session. Keep a current backup before moving data to an older app version, which cannot interpret the new layout settings.
 
 In OBS:
 
@@ -393,7 +405,7 @@ In OBS:
 
 The overlay page and fit margins stay transparent. Credits' configured background/opacity applies only to the fitted design rectangle (opaque black by default); set opacity to 0 for transparent credits, or place an OBS Color Source behind it if you want solid color across non-16:9 margins.
 
-Resizing updates only the outer transform: crawl geometry, speed/duration, pause/final state and source activation behavior stay unchanged. A source reload still starts a new run as before. Layout Studio and the local credits preview use the same fit math. Layout coordinates, drag math, validation, presets, and exported/imported backups remain 2560 x 1440 and require no migration.
+Resizing updates only the outer transform: crawl geometry, speed/duration, pause/final state and source activation behavior stay unchanged. A source reload still starts a new run as before. Layout Studio uses the selected design dimensions for its fit, drag and resize math. The dedicated portrait credits source wraps long text and fits its closing message within the frame; the content editor's small credits preview remains landscape.
 
 ## Social handle callouts
 
@@ -403,7 +415,7 @@ Edits stay in a local draft until **Save socials**. Reorder, enable or remove in
 
 Choose **Rotate one at a time** (5–300 seconds) or **Static row (wraps)**. Previous/Next/Pause/Resume act on connected viewers. Each viewer has an independent elapsed-time rotation; a newly loaded viewer starts at the first enabled entry. Unrelated state updates and hide/show retain its current item and elapsed progress. Pause/resume preserves the remaining interval; manual next/previous starts a fresh interval. Reordering retains the current ID; disabling/removing it selects the nearest remaining position and resets that interval. Blank and disabled entries are skipped; with none, the output is empty. Static rows show all enabled entries; playback controls affect the retained rotating selection when returning to rotation.
 
-Enable **Show socials widget**, then position, resize, lock and layer it in **Layout studio**. It uses the existing logical 2560×1440 canvas and output scaling. Colors/background/radius follow Appearance; text size is 18–60px before widget/content scaling. Rows wrap and scale down to fit the widget. Large lists in small widgets can become unreadable: use rotation, fewer entries, or a larger widget. The Socials content preview scrolls at a readable size; Layout studio previews the actual output fit.
+Enable **Show socials widget** for landscape, or select Portrait and enable socials in **Layout studio**, then position, resize, lock and layer it in that composition. Colors/background/radius follow Appearance; text size is 18–60px before widget/content scaling, with a separate portrait typography setting. Rows wrap and scale down to fit the widget. Large lists in small widgets can become unreadable: use rotation, fewer entries, or a larger widget. The Socials content preview scrolls at a readable size; Layout studio previews the actual output fit.
 
 ### Custom icons and portable backups
 
@@ -426,3 +438,5 @@ Each Socials callout has one handle/display label, one optional CTA and an order
 **Split to callout** previews moving one platform to a new callout immediately after its group, retaining the handle, CTA and enabled settings. **Undo last group / split / removal** restores the preceding draft, including after saving, until a later edit changes it. Save again to publish an undo. Undo is one step, local to the page, and subject to the same stale-edit protection. Reload current socials clears draft and undo history. Draft/undo custom assets cannot be deleted from that page's library; server checks always protect references in saved groups and presets.
 
 Old Socials states, presets and version-1 backups remain accepted losslessly as independent single-platform groups. Conversion to the explicit platform-list representation occurs when the editor saves; merely reading/importing legacy entries does not rewrite their IDs or settings. New backups include grouped platforms and uploaded assets; importing a new grouped backup requires this version or newer. Existing scores, sessions and layouts are unaffected. The 20-callout, 120-character handle, 80-character CTA and PNG limits still apply. Very dense groups need a suitably sized widget; use Layout studio to check actual fit.
+
+Portrait tips and rotating CTA text reduce their font size to fit the chosen widget. Very long copy may become small: enlarge the widget or shorten the text for comfortable on-stream reading. Scrolling CTA mode retains its configured font size.

@@ -36,3 +36,19 @@ test('scroll starts with content visible, supports both directions, and holds co
   assert.equal(scrollOffset(0,1000,100,2,'right'),-1000);
   assert.equal(scrollOffset(5000,1000,100,2,'right'),-500);
 });
+import {fitTextFont} from '../public/ticker.mjs';
+
+test('bounded text fitting measures nonlinear wrapping and preserves requested font when it fits',()=>{
+  let applied;
+  const measure=size=>{applied=size;return {width:500,height:Math.ceil(585/(500/(size*.5)))*size*1.45+52};};
+  const fitted=fitTextFont(28,500,250,measure);
+  assert.ok(fitted<28&&fitted>1);
+  assert.equal(applied,fitted);
+  assert.ok(measure(fitted).height<=251);
+  assert.equal(fitTextFont(28,500,250,size=>({width:100,height:size*2})),28);
+});
+
+test('bounded text fitting accounts for horizontal overflow as well as height',()=>{
+  const fitted=fitTextFont(60,200,70,size=>({width:size*10,height:size}));
+  assert.ok(fitted<=20.1&&fitted>20);
+});

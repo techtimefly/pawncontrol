@@ -1,3 +1,4 @@
+import {portraitDefaults,guideDefaults} from './layouts.mjs';
 import {starterMessages} from './starter-templates.mjs';
 import {socialDefaults,socialWidget} from './socials-model.mjs';
 import {bonusDefaults} from './bonus-model.mjs';
@@ -33,6 +34,7 @@ export function defaults() {
   return {
     socials:socialDefaults(),socialIcons:{},socialsPlayback:{seq:0,paused:false,command:null,currentId:null},
     credits:bonus.credits,tips:bonus.tips,creditsPlayback:bonus.creditsPlayback,tipsPlayback:bonus.tipsPlayback,
+    portrait:portraitDefaults(),landscapeGuides:guideDefaults(),
     version: 1, username: 'your_chess_username', channel: 'jamespawn', activeMode: 'blitz', showAvatar: false,
     fields: Object.keys(FIELDS).map(id => ({ id, visible: ['username','blitz','rapid','bullet','session','streak'].includes(id) })),
     parts: { win: true, loss: true, draw: true },

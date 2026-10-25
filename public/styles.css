@@ -39,3 +39,26 @@
 .starter-controls button { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
 .starter-dialog #modal-content p { white-space: pre-wrap; overflow-wrap: anywhere; }
 dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; box-sizing: border-box; }
+
+/* Portrait is an explicit logical composition, never a viewport breakpoint. */
+[data-layout="portrait"] .player-name,[data-layout="portrait"] .stat-value{min-width:0;overflow-wrap:anywhere}
+[data-layout="portrait"] .player-header{min-width:0}
+[data-layout="portrait"] .stat-label{flex-shrink:0}
+[data-layout="portrait"] .scoreboard-values{gap:16px}
+[data-layout="portrait"] .scoreboard-cell{min-width:0}
+[data-layout="portrait"] .scoreboard-cell strong{overflow-wrap:anywhere}
+[data-layout="portrait"] .credits-crawl{padding-left:7%;padding-right:7%}
+[data-layout="portrait"] .credits-brand,[data-layout="portrait"] .credits-subtitle,[data-layout="portrait"] .credits-section h2,[data-layout="portrait"] .credit-label,[data-layout="portrait"] .credits-outro{overflow-wrap:anywhere;white-space:pre-wrap}
+[data-layout="portrait"] .credits-final{line-height:1.2;white-space:pre-wrap}
+[data-layout="portrait"] .tip-title,[data-layout="portrait"] .tip-category{overflow-wrap:anywhere}
+
+/* Editor-only composition guides */
+#layout-guides{position:absolute;inset:0;pointer-events:none}.composition-guide{position:absolute;border:3px dashed #637d95;color:#98b1c9;display:flex;align-items:center;justify-content:center;font-size:24px;letter-spacing:3px}.composition-guide.safeArea{border-color:#ba9959;color:#ba9959;align-items:flex-start;padding-top:12px}.stage-wrap{margin-inline:auto}.layout-toolbar{flex-wrap:wrap;gap:12px}.layout-toolbar>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+[data-layout="portrait"] .stats-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px;row-gap:var(--row-gap)}
+[data-layout="portrait"] .stats-card .player-header{grid-column:1/-1;margin-bottom:0;padding-bottom:12px}
+[data-layout="portrait"] .stats-card .stat-row{margin-top:0;gap:8px}
+[data-layout="portrait"] .stats-card .goal-track{grid-column:1/-1;margin-top:0}
+[data-layout="portrait"] .stats-card .long-value{grid-column:1/-1}
+.credits-final-text{display:block;max-width:100%;min-width:0;overflow-wrap:anywhere}
+[data-layout="portrait"] .ticker-tag{max-width:38%;overflow-wrap:anywhere;letter-spacing:1px;padding:0 16px;font-size:.65em;line-height:1.15}
+[data-layout="portrait"] .ticker-rotation{max-width:100%;overflow-wrap:anywhere}
