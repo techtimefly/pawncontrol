@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createApp} from '../server.mjs';
 import {layoutState} from '../public/layouts.mjs';
+import {recapSessionKey} from '../public/recap-model.mjs';
 
 test('simultaneous authenticated outputs share live data, persist both compositions and reconnect', {timeout:15000}, async()=>{
   const dir=mkdtempSync(join(tmpdir(),'pawn-layout-http-'));
@@ -34,7 +35,7 @@ test('simultaneous authenticated outputs share live data, persist both compositi
       const page=await fetch(`${base}/${path}?layout=${layout}&token=${config.token}`);
       assert.equal(page.status,200);assert.match(await page.text(),new RegExp(`${path}\\.mjs`));
     }
-    const module=await fetch(base+'/layouts.mjs');assert.equal(module.status,200);assert.match(module.headers.get('content-type'),/javascript/);
+    for(const path of ['/layouts.mjs','/recap-model.mjs','/recap-controls.mjs']){const module=await fetch(base+path);assert.equal(module.status,200);assert.match(module.headers.get('content-type'),/javascript/);}
     assert.equal((await fetch(base+'/api/events?layout=portrait')).status,401);
     const landscape=await connect('landscape'),portrait=await connect('portrait');
     const initial=await landscape.next();assert.deepEqual(await portrait.next(),initial);
@@ -50,17 +51,25 @@ test('simultaneous authenticated outputs share live data, persist both compositi
     const widgets=structuredClone(scoredA.widgets);widgets.scoreboard.visible=true;widgets.ticker.y=1300;
     const positioned=await action({type:'settings',settings:{widgets}});
     assert.deepEqual((await landscape.next(s=>s.revision>=positioned.revision)).portrait,edited);assert.deepEqual((await portrait.next(s=>s.revision>=positioned.revision)).widgets,widgets);
-    await action({type:'save-preset',name:'Dual output'});
+    const composed=await action({type:'save-preset',name:'Dual output'});
+    const withDraft=await action({type:'recap',operation:'save-draft',expectedRevision:0,expectedSessionKey:recapSessionKey(composed),kind:'live',text:'Private recap alongside both layouts',refreshStats:true});
+    assert.equal(withDraft.recap,undefined);
+    assert.equal((await fetch(`${base}/api/recap?token=${config.token}`)).status,401);
     const exported=await fetch(base+'/api/export',{headers:{cookie}});assert.equal(exported.status,200);const backup=await exported.json();
     assert.deepEqual(backup.settings.portrait,edited);assert.deepEqual(backup.settings.widgets,widgets);
+    assert.equal(backup.recap.draft.text,'Private recap alongside both layouts');
     const changed=structuredClone(edited);changed.widgets.tips.visible=false;
     await action({type:'settings',settings:{portrait:changed}});
-    const restored=await action({type:'import',data:backup});assert.deepEqual(restored.portrait,edited);assert.deepEqual(restored.widgets,widgets);
+    const restored=await action({type:'import',data:backup,expectedRecapRevision:backup.recap.revision});assert.deepEqual(restored.portrait,edited);assert.deepEqual(restored.widgets,widgets);
     await landscape.reader.cancel();await portrait.reader.cancel();
     await app.close();app=createApp(config);await listen();
     const reconnected=await connect('portrait'),saved=await reconnected.next();
     assert.notEqual(saved.instance,initial.instance);assert.deepEqual(saved.portrait,edited);assert.deepEqual(saved.widgets,widgets);
     assert.equal(saved.session.results[0].result,'win');assert.equal(saved.revision,0);
+    assert.equal(saved.recap,undefined);
+    const relogin=await post('/api/login',{password:config.password},false);cookie=relogin.headers.get('set-cookie').split(';')[0];
+    const privateRecap=await(await fetch(base+'/api/recap',{headers:{cookie}})).json();
+    assert.equal(privateRecap.recap.draft.text,backup.recap.draft.text);
     assert.equal((await post(`/api/action?token=${config.token}`,{type:'record',result:'loss'},false)).status,401);
   } finally {
     await Promise.allSettled(readers.map(reader=>reader.cancel()));await app.close();rmSync(dir,{recursive:true,force:true});

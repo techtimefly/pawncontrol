@@ -1,4 +1,5 @@
 import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
+import {createRecapControls} from './recap-controls.mjs';
 import {createStarterControls} from './starter-controls.mjs';
 import {createCtaTextControls} from './cta-text-controls.mjs';
 import {createSocialsControls} from './socials-controls.mjs';
@@ -11,7 +12,7 @@ const dockMode=location.pathname==='/dock'||location.pathname==='/dock/'?'combin
 if(dockMode){document.body.classList.add('dock-mode',`dock-${dockMode}`);document.title=`Pawn Control · ${dockMode==='combined'?'Stream':dockMode==='score'?'Score':'CTA'} dock`;}
 let editorLayout='landscape';
 let state, admin={}, events, tab='session', selected='stats', dragging=false, queue=Promise.resolve(), toastTimer;
-const title={session:'Session overview',layout:'Layout studio',stats:'Stats & visibility',ticker:'CTA ticker',credits:'End credits',tips:'Chess tips',socials:'Social handle callouts',appearance:'Appearance',settings:'Settings & connections'};
+const title={recap:'Session recap & share',session:'Session overview',layout:'Layout studio',stats:'Stats & visibility',ticker:'CTA ticker',credits:'End credits',tips:'Chess tips',socials:'Social handle callouts',appearance:'Appearance',settings:'Settings & connections'};
 const dockTabs=[['dock-score-tab','session'],['dock-cta-tab','ticker'],['dock-credits-tab','credits'],['dock-tips-tab','tips'],['dock-socials-tab','socials']];
 const readableTime=value=>value?new Date(value).toLocaleString():'Not available yet';
 function toast(message) { $('toast').textContent=message; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').hidden=true,4500); }
@@ -44,7 +45,7 @@ function renderGuideControls(){
  for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));group.append(grid);}host.append(group);}
  if(editorLayout==='portrait'){host.append(el('h3','','Portrait typography'));for(const [key,label,min,max] of [['font','Stats font',18,60],['padding','Card padding',10,60],['gap','Row gap',4,40],['tickerFont','CTA font',18,60],['tipsFont','Tips font',18,60],['socialsFont','Socials font',18,60],['creditsFont','Credits font',20,90],['creditsHeading','Credits heading',24,120],['creditsBrandSize','Credits brand',30,180],['creditsGap','Credits gap',10,180]])host.append(inputField(label,'number',state.portrait.typography[key],v=>changeLayout(s=>s.typography[key]=v),{min,max}));}
 }
-function showLogin() { events?.close(); $('app').hidden=true; $('login').hidden=false; }
+function showLogin() { recapControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
 async function start() {
   try { state=await api('/api/state'); admin=await api('/api/admin'); }
   catch { showLogin(); return; }
@@ -97,6 +98,7 @@ function render(force=false) {
 }
 function renderTab() {
   if(!state)return;
+  if(tab==='recap')recapControls.render();
   if(tab==='session')renderSession();
   if(tab==='layout')renderLayout();
   if(tab==='stats')renderStats();
@@ -279,7 +281,7 @@ for(const b of document.querySelectorAll('[data-goto]'))b.onclick=()=>setTab(b.d
 $('refresh').onclick=async()=>{try{await api('/api/refresh',{});toast('Refresh requested. Upstream cache and retry limits still apply.');}catch(e){toast(e.message);}};
 $('undo').onclick=()=>action({type:'undo'});$('timer').onclick=()=>action(()=>({type:'timer',command:state.session.runningSince!==null?'pause':'start'}));
 $('restart-timer').onclick=async()=>{if(await modal('Restart session clock?',[],'Restart from 00:00:00 and keep running. Scores, result history, and streak remain unchanged.'))action({type:'timer',command:'restart'});};
-$('reset').onclick=async()=>{if(await modal('Start a new session?',[],'Scores, streak, and timer return to zero. You can undo this reset.'))action({type:'reset'});};
+$('reset').onclick=()=>setTab('recap');
 $('edit-totals').onclick=async()=>{const t=totals(state.session),values=await modal('Correct session totals',['win','loss','draw'].map(k=>({key:k,label:k,type:'number',value:t[k],min:0,max:10000})),'Corrections change totals; recorded result order and streak stay intact.');if(values)action({type:'totals',totals:values});};
 $('active-mode').onchange=e=>change(s=>s.activeMode=e.target.value);
 $('show-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=true));$('hide-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=false));
@@ -300,7 +302,7 @@ $('open-overlay').onclick=()=>window.open($('overlay-url').value,'_blank','noope
 $('export').onclick=()=>{location.href='/api/export';};
 $('import').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{if(file.size>6000000)throw new Error('Backup is too large');const data=JSON.parse(await file.text());if(await modal('Restore backup?',[],'This replaces settings, layouts, and the current session. Credentials remain unchanged.'))await action({type:'import',data});}catch(err){toast(err.message);}finally{e.target.value='';}
+  try{if(file.size>6000000)throw new Error('Backup is too large');const data=JSON.parse(await file.text());const expectedRecapRevision=(await api('/api/recap')).recap.revision;if(await modal('Restore backup?',[],'This replaces settings, layouts, and the current session. Backups containing recap data also replace saved recaps and templates; older backups preserve them. Credentials remain unchanged.'))await action({type:'import',data,expectedRecapRevision});}catch(err){toast(err.message);}finally{e.target.value='';}
 };
 const editor=$('editor-canvas');
 editor.addEventListener('pointerdown',e=>{
@@ -323,6 +325,7 @@ editor.addEventListener('pointerdown',e=>{
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
+const recapControls=createRecapControls({api,accept,confirmChange:message=>modal('Session recap',[],message,'Confirm'),resetSession:expectedSessionKey=>action({type:'reset',expectedSessionKey})});
 const starterControls=createStarterControls({getState:()=>state,action,confirmChange:message=>modal('Starter templates',[],message,'Confirm'),settle:()=>queue,render:()=>renderTab()});
 const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});

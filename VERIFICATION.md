@@ -146,3 +146,21 @@ Implementation uses an isolated checkout on `feat/portrait-layout`, based on fre
 - Added authenticated integration coverage for two simultaneous SSE clients, independent edits, shared score events, reconnect after database restart, backup/preset round-trip, explicit output URLs, and read-only-token protections. The test uses a unique temporary database and stubbed Chess.com responses.
 - Final-head test and CI results are recorded in the draft PR. This repository has no configured lint script; syntax checks cover every tracked .mjs file and whitespace checks use git diff --check.
 - Physical OBS capture and platform-specific live integrations are outside the automated browser checks. No release, deployment, alpha-tag change, merge, or shutdown change is part of this work.
+
+## Session Recap & Share verification
+
+- Isolated branch from freshly cloned `origin/main` at `755bef660aaeac63e46fb8c4362d7b6b9e7f8546`; no portrait-task checkout or commits used.
+- Node 24.22.1: full `node --test` suite **98/98 passed**, including nine new recap tests. All 52 `.mjs` files pass `node --check`. No lint script is configured; `git diff --check` passes.
+- Regression coverage: real totals and recorded best winning streak, zero-game denominator, unavailable/zero ratings, template substitution and unknown variables, manual draft preservation, clipboard rejection/unavailability fallback, atomic completion/reset, frozen text revisions, undo/reset safety, stale session and recap edits, private authenticated API and overlay SSE exclusion, SQLite restart, backup roundtrip/legacy preservation, strict schema bounds, and import revision overflow/conflicts.
+- Real in-app Chromium browser QA used a separate disposable SQLite directory and localhost port 3321 with polling disabled. No real user scores or upstream game data were used. Confirmed zero-state N/A, manual text across live score changes, explicit refresh to 2W/1L/1D (4 games, 50%, best streak 2), copied clipboard text, Session Complete template, atomic save/reset, frozen recap after server restart, text revision, saved stream link/hashtags after reload, and two-tab stale-save rejection with unsaved wording retained.
+- Responsive browser inspection: 390 x 844 and 1280 x 900; document width remained within viewport, form controls wrapped, and rating tile was adjusted to avoid broken words. Standalone score dock provides Return to session after recap/reset navigation.
+- Limits: clipboard-denial path tested with injected rejected/unavailable clipboard implementations; real browser copy succeeded. No real social platform posting, OBS host, deployment, alpha tag, release, or downloadable graphic tested/changed. The pre-existing occasional `API refresh: database is not open` shutdown diagnostic appeared in baseline and final passing suites; shutdown fix remains outside this PR.
+
+
+## Sequential Recap and Portrait integration (October 25, 2026)
+
+- Recap PR #14 merged first at e9772d940eec09d727e17d827e758348dfd60ba7; integrated that main into Portrait #15 without rewriting its branch history.
+- Resolved shared documentation, state/store migrations, server routes, control UI and CSS while preserving both features. Independent focused review found no merge-introduced blockers; all control IDs resolve uniquely.
+- Full combined Node 24.22.1 suite: 110/110 passed. Combined integration regression now verifies both layouts and private recap drafts through backup/import and restart, including absence of recap data from output SSE/read tokens.
+- Isolated browser QA on port 3313: portrait position edit, navigation to Share / Recap, saved custom draft retained across layout switches, completed recap frozen at 1W/0L/0D, atomic reset reflected as 0W/0L/0D in simultaneous portrait and landscape outputs. Existing per-feature browser matrices above remain applicable. No real OBS or external posting was exercised.
+- Final integration-head and post-merge main checks/results are linked in the PR conversation. No deployment, release, branch deletion, alpha-tag change or shutdown fix.
