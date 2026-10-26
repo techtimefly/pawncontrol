@@ -1,3 +1,4 @@
+import {bindGuideEditor,reservationGeometry} from './guide-editor.mjs';
 import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
 import {createRecapControls} from './recap-controls.mjs';
 import {createGoalsControls} from './goals-controls.mjs';
@@ -34,17 +35,22 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','goalPresentation','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
 function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
 function editorState(){return layoutState(state,editorLayout);}
 function renderGuides(){
  const host=$('layout-guides');host.replaceChildren();const guides=editorLayout==='portrait'?state.portrait.guides:state.landscapeGuides;const {width,height}=layoutDimensions(editorLayout);
- for(const key of ['safeArea','board','camera']){const g=guides[key];if(!g.enabled)continue;const node=el('div',`composition-guide ${key}`,key==='safeArea'?'SAFE AREA':`${key.toUpperCase()} · OBS source`);const box=key==='safeArea'?{x:g.left,y:g.top,w:width-g.left-g.right,h:height-g.top-g.bottom}:g;Object.assign(node.style,{left:`${box.x}px`,top:`${box.y}px`,width:`${box.w}px`,height:`${box.h}px`});host.append(node);}
+ for(const key of ['safeArea','board','camera']){const g=guides[key];if(!g.enabled)continue;const node=el('div',`composition-guide ${key}`,key==='safeArea'?'SAFE AREA':`${key.toUpperCase()} · reservation`);if(key!=='safeArea'){node.dataset.reservation=key;node.classList.toggle('guide-locked',editorState().layoutLocked);const handle=el('span','guide-resize');handle.title='Resize reservation';node.append(handle);}const box=key==='safeArea'?{x:g.left,y:g.top,w:width-g.left-g.right,h:height-g.top-g.bottom}:g;Object.assign(node.style,{left:`${box.x}px`,top:`${box.y}px`,width:`${box.w}px`,height:`${box.h}px`});host.append(node);}
 }
 function renderGuideControls(){
  const host=$('guide-fields');host.replaceChildren();const guides=editorLayout==='portrait'?state.portrait.guides:state.landscapeGuides;const {width,height}=layoutDimensions(editorLayout);
- const update=(key,field,value)=>{const target=editorLayout;return change(s=>{const g=target==='portrait'?s.portrait.guides:s.landscapeGuides;g[key][field]=value;});};
- for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));group.append(grid);}host.append(group);}
+ const target=editorLayout;
+ const update=(key,field,value)=>{
+   const original=structuredClone(guides[key]);let next={...original,[field]:value};
+   if(key!=='safeArea'&&original.aspectLocked&&['w','h'].includes(field))next=reservationGeometry(original,field==='w'?value-original.w:0,field==='h'?value-original.h:0,{layout:target,resize:true});
+   return action({type:'layout-guide',layout:target,key,expected:original,value:next});
+ };
+ for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));if(key!=='safeArea')grid.append(inputField('Lock aspect ratio','checkbox',!!guides[key].aspectLocked,v=>update(key,'aspectLocked',v)));group.append(grid);}host.append(group);}
  if(editorLayout==='portrait'){host.append(el('h3','','Portrait typography'));for(const [key,label,min,max] of [['font','Stats font',18,60],['padding','Card padding',10,60],['gap','Row gap',4,40],['tickerFont','CTA font',18,60],['tipsFont','Tips font',18,60],['socialsFont','Socials font',18,60],['creditsFont','Credits font',20,90],['creditsHeading','Credits heading',24,120],['creditsBrandSize','Credits brand',30,180],['creditsGap','Credits gap',10,180]])host.append(inputField(label,'number',state.portrait.typography[key],v=>changeLayout(s=>s.typography[key]=v),{min,max}));}
 }
 function showLogin() { recapControls.clear(); goalsControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
@@ -68,6 +74,7 @@ function setConnection(connected){
   for(const id of ['connection-label','dock-connection-label'])$(id).textContent=connected?'Server connected':'Reconnecting…';
 }
 async function setTab(next) {
+  guideEditor.cancel();
   if(tab==='ticker'&&next!==tab&&!await ctaTextControls.canLeave())return;
   if(tab==='tips'&&next!==tab&&!await bonusControls.canLeave())return;
   tab=next;
@@ -177,13 +184,21 @@ function renderLayout() {
   const list=$('widget-list');list.replaceChildren();
   for(const id of WIDGET_IDS) {
     const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=view.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);check.onchange=()=>changeLayout(s=>s.widgets[id].visible=check.checked);
-    row.append(check,button(id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
+    row.append(check,button(id==='clock'?'Session Clock':id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
   }
   const fields=$('widget-fields');fields.replaceChildren();const w=view.widgets[selected];
   fields.append(el('h3','',`${selected.charAt(0).toUpperCase()+selected.slice(1)} position`));
   const grid=el('div','form-grid');
   for(const [k,label,min,max] of [['x','X',0,width],['y','Y',0,height],['w','Width',150,width],['h','Height',40,height],['z','Layer',0,50],['scale','Content scale',.5,2]])grid.append(inputField(label,'number',w[k],v=>changeLayout(s=>s.widgets[widgetId][k]=v),{min,max,step:k==='scale'?.05:1}));
   fields.append(grid,inputField('Lock this widget','checkbox',w.locked,v=>changeLayout(s=>s.widgets[widgetId].locked=v)));
+  if(selected==='clock') {
+    const layout=editorLayout,style=state.sessionClock[layout];
+    fields.append(el('h3','','Session Clock style'),el('p','small-note','Uses the same session timer as Stats and the Score dock. Start, pause, reset or restart it from Session / Score. Styling and visibility are saved separately for each orientation.'));
+    for(const [key,label,type,options] of [
+      ['font','Font size','number',{min:18,max:160}],['family','Font','select',{items:[['sans-serif','Sans serif'],['serif','Serif'],['monospace','Monospace']]}],
+      ['color','Text color','color',{}],['background','Background','color',{}],['opacity','Background opacity (%)','number',{min:0,max:100}],['showStatus','Show timer status','checkbox',{}]
+    ]) fields.append(inputField(label,type,style[key],v=>action(()=>({type:'session-clock-style',layout,expected:state.sessionClock[layout],patch:{[key]:v}})),options));
+  }
   if(selected==='stats')fields.append(button('Fit card height',()=>{
     const card=$('editor-canvas').querySelector('.stats-card');const h=Math.ceil(card.scrollHeight*w.scale);changeLayout(s=>{s.widgets.stats.h=Math.min(height-s.widgets.stats.y,Math.max(40,h));});
   },'secondary wide'));
@@ -290,9 +305,9 @@ $('edit-totals').onclick=async()=>{const t=totals(state.session),values=await mo
 $('active-mode').onchange=e=>change(s=>s.activeMode=e.target.value);
 $('show-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=true));$('hide-fields').onclick=()=>change(s=>s.fields.forEach(f=>f.visible=false));
 $('lock-layout').onclick=()=>changeLayout(s=>s.layoutLocked=!s.layoutLocked);$('snap').onchange=e=>changeLayout(s=>s.snap=e.target.checked);
-$('layout-select').onchange=async e=>{const target=e.target.value;await queue;if(dragging)return;editorLayout=target;renderLayout();};
+$('layout-select').onchange=async e=>{const target=e.target.value;guideEditor.cancel();await queue;if(dragging){$('layout-select').value=editorLayout;return;}editorLayout=target;renderLayout();};
 $('portrait-preset').onclick=async()=>{if(await modal('Reset portrait composition?',[],'Replace portrait positions, typography and guides with the portrait preset. Shared content and landscape stay unchanged.'))change(s=>s.portrait=portraitDefaults());};
-$('preview-size').onchange=()=>resizePreviews();
+$('preview-size').onchange=()=>{guideEditor.cancel();resizePreviews();};
 $('save-layout').onclick=async()=>{const value=await modal('Save layout preset',[{key:'name',label:'Preset name',maxlength:40}]);if(value)action({type:'save-preset',name:value.name});};
 $('layout-presets').onchange=async e=>{const name=e.target.value;if(name&&await modal('Load both layouts?',[],'Replace both compositions, appearance and shared overlay content with this preset. Session results and player identity stay unchanged.'))action({type:'load-preset',name});};
 $('delete-layout').onclick=async()=>{const value=await modal('Delete layout preset',[{key:'name',label:'Exact preset name',maxlength:40}]);if(value)action({type:'delete-preset',name:value.name});};
@@ -308,6 +323,14 @@ $('import').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   try{if(file.size>6000000)throw new Error('Backup is too large');const data=JSON.parse(await file.text());const expectedRecapRevision=(await api('/api/recap')).recap.revision;const expectedGoalRevision=state.goalTracker.revision;if(await modal('Restore backup?',[],'This replaces settings, layouts, the current session, and goal tracking. A legacy backup without goal data clears all current goals. Backups containing recap data also replace saved recaps and templates; older backups preserve them. Credentials remain unchanged.'))await action({type:'import',data,expectedRecapRevision,expectedGoalRevision});}catch(err){toast(err.message);}finally{e.target.value='';}
 };
+const guideEditor=bindGuideEditor($('layout-guides'),{
+  getContext:()=>({layout:editorLayout,guides:editorLayout==='portrait'?state.portrait.guides:state.landscapeGuides,locked:editorState().layoutLocked,snap:editorState().snap}),
+  setDragging:value=>{dragging=value;},render:()=>renderLayout(),
+  save:(layout,key,expected,value)=>action({type:'layout-guide',layout,key,expected,value})
+});
+window.addEventListener('blur',()=>guideEditor.cancel());
+window.addEventListener('resize',()=>guideEditor.cancel());
+window.addEventListener('keydown',e=>{if(e.key==='Escape')guideEditor.cancel();});
 const editor=$('editor-canvas');
 editor.addEventListener('pointerdown',e=>{
   const widget=e.target.closest('[data-widget]');if(!widget)return;

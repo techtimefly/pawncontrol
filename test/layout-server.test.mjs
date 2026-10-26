@@ -35,7 +35,7 @@ test('simultaneous authenticated outputs share live data, persist both compositi
       const page=await fetch(`${base}/${path}?layout=${layout}&token=${config.token}`);
       assert.equal(page.status,200);assert.match(await page.text(),new RegExp(`${path}\\.mjs`));
     }
-    for(const path of ['/layouts.mjs','/recap-model.mjs','/recap-controls.mjs']){const module=await fetch(base+path);assert.equal(module.status,200);assert.match(module.headers.get('content-type'),/javascript/);}
+    for(const path of ['/guide-editor.mjs','/layouts.mjs','/recap-model.mjs','/recap-controls.mjs']){const module=await fetch(base+path);assert.equal(module.status,200);assert.match(module.headers.get('content-type'),/javascript/);}
     assert.equal((await fetch(base+'/api/events?layout=portrait')).status,401);
     const landscape=await connect('landscape'),portrait=await connect('portrait');
     const initial=await landscape.next();assert.deepEqual(await portrait.next(),initial);
@@ -46,6 +46,13 @@ test('simultaneous authenticated outputs share live data, persist both compositi
     assert.deepEqual(a.widgets,initial.widgets);assert.deepEqual(b.portrait,edited);
     assert.equal(layoutState(a,'landscape').widgets.stats.x,initial.widgets.stats.x);
     assert.equal(layoutState(b,'portrait').widgets.stats.x,90);
+    const guideCommand={type:'layout-guide',layout:'portrait',key:'camera',expected:edited.guides.camera,value:{...edited.guides.camera,enabled:true,aspectLocked:true,x:80}};
+    assert.equal((await post('/api/action',guideCommand,false)).status,401);
+    const guideState=await action(guideCommand);edited.guides.camera=guideCommand.value;
+    assert.deepEqual(guideState.portrait.widgets,edited.widgets);
+    assert.equal((await post('/api/action',guideCommand)).status,400);
+    assert.deepEqual((await landscape.next(s=>s.revision>=guideState.revision)).portrait.guides,edited.guides);
+    assert.deepEqual((await portrait.next(s=>s.revision>=guideState.revision)).portrait.guides,edited.guides);
     const recorded=await action({type:'record',result:'win'});
     const scoredA=await landscape.next(s=>s.revision>=recorded.revision),scoredB=await portrait.next(s=>s.revision>=recorded.revision);assert.deepEqual(scoredA.session,scoredB.session);assert.equal(scoredB.session.results[0].result,'win');
     const widgets=structuredClone(scoredA.widgets);widgets.scoreboard.visible=true;widgets.ticker.y=1300;

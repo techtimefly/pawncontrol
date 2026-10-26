@@ -1,3 +1,4 @@
+import {goalDisplay,displayedGoals,goalChartValue,animateGoalChange} from './goals-presentation.mjs';
 import {goalProgress} from './goals-model.mjs';
 const el=(tag,cls,text)=>{const n=document.createElement(tag);n.className=cls;if(text!=null)n.textContent=text;return n;};
 export function goalSummary(s,g) {
@@ -12,26 +13,41 @@ export function goalSummary(s,g) {
   return {...p,value,detail};
 }
 export function renderGoal(wrapper,s) {
-  const handle=wrapper.querySelector('.resize-handle');
-  wrapper.replaceChildren();
-  const g=s.goalTracker?.items.find(g=>g.id===s.goalTracker.featuredId&&!g.archived);
-  if(!g){wrapper._goalSummaryKey='';if(handle)wrapper.append(handle);return;}
-  const p=goalSummary(s,g),w=s.widgets.goal;
-  wrapper._goalSummaryKey=JSON.stringify([g.id,g.title,g.scope,p]);
-  const card=el('div','featured-goal-card'),content=el('div','featured-goal-content');
-  content.append(el('div','featured-goal-label',g.scope==='ongoing'?'ONGOING GOAL':'SESSION GOAL'),el('div','featured-goal-title',g.title),el('strong','featured-goal-value',p.value),el('div','featured-goal-detail',p.detail));
-  card.append(content);wrapper.append(card);if(handle)wrapper.append(handle);
-  content.style.fontSize=`${s.theme.font*w.scale}px`;
-  requestAnimationFrame(()=>{
-    if(!content.isConnected)return;
-    const fit=Math.min(1,card.clientHeight/Math.max(1,content.scrollHeight),card.clientWidth/Math.max(1,content.scrollWidth));
-    content.style.transform=`scale(${fit})`;
-    if(fit<1)content.style.width=`${100/fit}%`;
-  });
+  const config=goalDisplay(s),goals=displayedGoals(s),entries=goals.map(g=>({g,p:goalSummary(s,g)}));
+  const key=JSON.stringify([s.layout,config,s.widgets.goal,s.theme,entries]);
+  if(wrapper._goalSummaryKey===key)return;
+  wrapper._goalSummaryKey=key;
+  const previous=wrapper._goalValues??new Map();wrapper._goalValues=new Map();
+  const handle=wrapper.querySelector('.resize-handle');wrapper.replaceChildren();
+  const root=el('div','goal-cards goal-cards-'+config.mode);wrapper.append(root);
+  root.style.setProperty('--goal-count',String(Math.max(1,entries.length)));
+  for(const {g,p} of entries){
+    const card=el('div','featured-goal-card'),content=el('div','featured-goal-content');
+    content.append(el('div','featured-goal-label',g.scope==='ongoing'?'ONGOING GOAL':'SESSION GOAL'),el('div','featured-goal-title',g.title),el('strong','featured-goal-value',p.value),el('div','featured-goal-detail',p.detail));
+    const value=goalChartValue(g,p);wrapper._goalValues.set(g.id,value);
+    if(config.chart!=='none'){
+      if(value===null)content.append(el('div','goal-chart-unavailable',p.status==='stale'?'Chart unavailable · stale data':'Chart unavailable'));
+      else{
+        const chart=el('div','goal-chart goal-chart-'+config.chart),fill=el('div','goal-chart-fill');
+        chart.setAttribute('role','img');chart.setAttribute('aria-label',Math.round(value*100)+'% of goal progress');
+        chart.style.setProperty('--progress',String(value));chart.append(fill);content.append(chart);
+        const prior=previous.get(g.id),reduced=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
+        if(!wrapper._goalSuppressAnimation&&animateGoalChange(prior,value,config.animation,reduced)&&typeof fill.animate==='function'){
+          // Animate only known value changes on a retained card. New/reconnected
+          // cards render their actual value immediately, never from zero.
+          if(config.chart==='bar')fill.animate([{transform:'scaleX('+prior+')'},{transform:'scaleX('+value+')'}],{duration:280,easing:'ease-out'});
+          else fill.animate([{opacity:.65},{opacity:1}],{duration:280,easing:'ease-out'});
+        }
+      }
+    }
+    card.append(content);root.append(card);content.style.fontSize=(s.theme.font*s.widgets.goal.scale)+'px';
+    requestAnimationFrame(()=>{
+      if(!content.isConnected)return;
+      const fit=Math.min(1,card.clientHeight/Math.max(1,content.scrollHeight),card.clientWidth/Math.max(1,content.scrollWidth));
+      content.style.transform='scale('+fit+')';
+    });
+  }
+  wrapper._goalSuppressAnimation=false;if(handle)wrapper.append(handle);
 }
-export function tickGoal(canvas,s){
-  const wrapper=canvas.querySelector('[data-widget="goal"]');if(!wrapper)return;
-  const g=s.goalTracker?.items.find(g=>g.id===s.goalTracker.featuredId&&!g.archived);
-  const key=g?JSON.stringify([g.id,g.title,g.scope,goalSummary(s,g)]):'';
-  if(key!==wrapper._goalSummaryKey)renderGoal(wrapper,s);
-}
+export function suppressGoalAnimation(canvas){const wrapper=canvas.querySelector('[data-widget="goal"]');if(wrapper){wrapper._goalValues=new Map();wrapper._goalSummaryKey=null;wrapper._goalSuppressAnimation=true;}}
+export function tickGoal(canvas,s){const wrapper=canvas.querySelector('[data-widget="goal"]');if(wrapper)renderGoal(wrapper,s);}

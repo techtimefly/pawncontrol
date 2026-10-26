@@ -1,3 +1,5 @@
+import {sessionClockDefaults,clockWidget} from './session-clock.mjs';
+import {goalPresentationDefaults} from './goals-presentation.mjs';
 export const LAYOUTS = ['landscape', 'portrait'];
 export function layoutDimensions(layout='landscape') {
   return layout==='portrait' ? {width:1080,height:1920} : {width:2560,height:1440};
@@ -14,7 +16,7 @@ export function portraitDefaults() {
   const widget=(x,y,w,h,z,visible=true)=>({x,y,w,h,z,visible,scale:1,locked:false});
   return {
     widgets:{
-      stats:widget(60,60,960,280,2),scoreboard:widget(60,1330,960,160,3),
+      clock:clockWidget('portrait'),stats:widget(60,60,960,280,2),scoreboard:widget(60,1330,960,160,3),
       tips:widget(450,1500,570,250,4,false),socials:widget(60,1690,960,100,4,false),
       ticker:widget(60,1810,960,70,1),credits:widget(0,0,1080,1920,10,false),
       goal:widget(60,1500,960,180,4,false)
@@ -27,9 +29,9 @@ export function portraitDefaults() {
 // backups and presets retain their exact composition when portrait is added.
 export function upgradeLayouts(settings) {
   const portrait=settings.portrait??portraitDefaults();
-  return {...settings,
-    widgets:{...settings.widgets,goal:settings.widgets?.goal??{x:1800,y:1080,w:650,h:220,scale:1,visible:false,locked:false,z:4}},
-    portrait:{...portrait,widgets:{...portrait.widgets,goal:portrait.widgets?.goal??portraitDefaults().widgets.goal}},
+  return {...settings,goalPresentation:settings.goalPresentation??goalPresentationDefaults(),sessionClock:settings.sessionClock??sessionClockDefaults(),
+    widgets:{...settings.widgets,clock:settings.widgets?.clock??clockWidget(),goal:settings.widgets?.goal??{x:1800,y:1080,w:650,h:220,scale:1,visible:false,locked:false,z:4}},
+    portrait:{...portrait,widgets:{...portrait.widgets,clock:portrait.widgets?.clock??clockWidget('portrait'),goal:portrait.widgets?.goal??portraitDefaults().widgets.goal}},
     landscapeGuides:settings.landscapeGuides??guideDefaults()};
 }
 export function layoutState(state,layout='landscape') {

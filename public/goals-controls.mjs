@@ -1,3 +1,4 @@
+import {renderGoalPresentation} from './goals-presentation-controls.mjs';
 import {goalSummary} from './goals-render.mjs';
 import {createMessageId} from './model.mjs';
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
@@ -50,6 +51,10 @@ export function createGoalsControls({getState,api,accept,change,confirmChange}) 
   for(const [id,portrait] of [['goal-visible-landscape',false],['goal-visible-portrait',true]])$(id).onchange=()=>{const checked=$(id).checked;void change(s=>{(portrait?s.portrait:s).widgets.goal.visible=checked;});};
   function render(){
     const s=getState();if(!s?.goalTracker)return;
+    renderGoalPresentation($('goal-presentation'),s,async(layout,expectedPresentation,presentation)=>{
+      try{const result=await api('/api/action',{type:'goal-presentation',layout,expectedPresentation,presentation});accept(result.state,true);status('Goal presentation saved.');}
+      catch(e){status(e.message+' Reload presentation values before retrying.');}
+    });
     summaryKey=JSON.stringify(s.goalTracker.items.map(g=>goalSummary(s,g)));
     $('goals-corrections-note').hidden=!Object.values(s.session.corrections).some(v=>v!==0);
     $('goal-visible-landscape').checked=s.widgets.goal.visible;$('goal-visible-portrait').checked=s.portrait.widgets.goal.visible;
