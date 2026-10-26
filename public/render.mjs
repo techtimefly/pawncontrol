@@ -35,9 +35,8 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
     if(id==='clock') { renderSessionClock(wrapper,s); }
     else if(id==='goal') { renderGoal(wrapper,s); }
     else if(id==='credits') {
-      if(!wrapper._credits){const content=el('div','credits-content');wrapper.append(content);wrapper._credits=createCredits(content,{autoplay:w.visible});}
-      if(w.visible&&!wrapper._wasVisible)wrapper._credits.command('restart');
-      wrapper._wasVisible=w.visible;wrapper._credits.update({...s.credits,font:s.credits.font*w.scale,heading:s.credits.heading*w.scale,brandSize:s.credits.brandSize*w.scale,gap:s.credits.gap*w.scale},s.creditsPlayback);
+      if(!wrapper._credits){const content=el('div','credits-content');wrapper.append(content);wrapper._credits=createCredits(content,{autoplay:false});}
+      wrapper._credits.update({...s.credits,font:s.credits.font*w.scale,heading:s.credits.heading*w.scale,brandSize:s.credits.brandSize*w.scale,gap:s.credits.gap*w.scale},s.creditsPlayback);
     }
     else if(id==='tips') {
       if(!wrapper._tips){const content=el('div','tips-content');wrapper.append(content);wrapper._tips=createTips(content);}

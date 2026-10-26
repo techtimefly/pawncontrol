@@ -43,3 +43,8 @@ export function layoutState(state,layout='landscape') {
     socials:{...state.socials,font:t.socialsFont},
     credits:{...state.credits,font:t.creditsFont,heading:t.creditsHeading,brandSize:t.creditsBrandSize,gap:t.creditsGap}};
 }
+
+// Gestures write only changed geometry, never a captured visibility/playback state.
+export function widgetGeometryPatch(before,after) {
+  return Object.fromEntries(['x','y','w','h'].filter(key=>before[key]!==after[key]).map(key=>[key,after[key]]));
+}

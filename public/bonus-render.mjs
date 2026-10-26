@@ -14,7 +14,7 @@ export function createCredits(root,{autoplay=true}={}) {
   function draw(now){
     if(!root.isConnected)return;
     const ms=timeline.tick(now);
-    if(options){
+    if(options&&root.clientWidth>0&&root.clientHeight>0){
       root.style.visibility=timeline.stopped?'hidden':'visible';
       if(!crawl.hidden)contentHeight=crawl.scrollHeight;
       const frame=creditsProgress(ms,root.clientHeight,contentHeight,options);done=frame.done;
