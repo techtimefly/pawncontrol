@@ -95,3 +95,7 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 .dock-mode #goals-tab .section-heading h2{font-size:17px}.dock-mode #goals-tab button{font-size:11px;padding:9px}
 .dock-mode #goals-tab .form-grid{grid-template-columns:minmax(0,1fr)}.dock-mode #goals-tab .goals-help{font-size:11px}
 .recap-goals{grid-column:1/-1;overflow-wrap:anywhere}.recap-goal-outcome{padding:8px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.6}
+
+/* Reservations remain editor-only; their empty interior leaves widgets selectable. */
+.composition-guide.board,.composition-guide.camera{pointer-events:none;user-select:none;touch-action:none;border-color:#70aec3}.composition-guide[data-reservation]{justify-content:flex-start;align-items:flex-start;padding:12px;font-size:26px}.composition-guide[data-reservation]::before{content:"";position:absolute;top:0;left:0;right:0;height:64px;max-height:100%;pointer-events:auto;cursor:move;background:transparent}.guide-resize{position:absolute;bottom:0;right:0;width:44px;height:44px;pointer-events:auto;cursor:nwse-resize;background:#36c6ed;border:3px solid #10151e;border-radius:5px}.composition-guide.guide-locked::before{pointer-events:none}.guide-locked .guide-resize{display:none}
+#layout-guides{z-index:60}
