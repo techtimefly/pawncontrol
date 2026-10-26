@@ -279,6 +279,8 @@ for(const [id] of dockTabs)$(id).onkeydown=e=>{
   const index=dockTabs.findIndex(([,value])=>value===tab),next=e.key==='Home'?0:e.key==='End'?dockTabs.length-1:(index+(e.key==='ArrowLeft'?-1:1)+dockTabs.length)%dockTabs.length;
   setTab(dockTabs[next][1]);$(dockTabs[next][0]).focus();
 };
+// Display ordinals follow sidebar order; they are not keyboard shortcuts.
+for(const [index,button] of [...document.querySelectorAll('#nav .nav-item')].entries())button.querySelector('small').textContent=String(index+1).padStart(2,'0');
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>setTab(b.dataset.tab);
 for(const b of document.querySelectorAll('[data-goto]'))b.onclick=()=>setTab(b.dataset.goto);
 $('refresh').onclick=async()=>{try{await api('/api/refresh',{});toast('Refresh requested. Upstream cache and retry limits still apply.');}catch(e){toast(e.message);}};
