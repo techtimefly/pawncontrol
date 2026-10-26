@@ -1,5 +1,6 @@
 import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
 import {createRecapControls} from './recap-controls.mjs';
+import {createTimerControls} from './timer-controls.mjs';
 import {createStarterControls} from './starter-controls.mjs';
 import {createCtaTextControls} from './cta-text-controls.mjs';
 import {createSocialsControls} from './socials-controls.mjs';
@@ -121,7 +122,7 @@ function inputField(label,type,value,onchange,options={}) {
 function renderSessionSummary() {
   const t=totals(state.session), total=t.win+t.loss+t.draw, streak=streaks(state.session);
   for(const k of ['win','loss','draw']) { const e=document.querySelector(`[data-score="${k}"]`);if(e)e.textContent=t[k]; }
-  $('session-clock').textContent=clock(elapsed(state.session));$('timer').textContent=state.session.runningSince!==null?'Pause timer':state.session.elapsed>0?'Resume timer':'Start timer';
+  $('session-clock').textContent=clock(elapsed(state.session));timerControls.render();
   $('session-start').textContent=`Started ${new Date(state.session.startedAt).toLocaleDateString()}`;
   const metrics=$('session-metrics');metrics.replaceChildren();
   for(const [label,value] of [['WIN RATE',total?`${Math.round(t.win/total*100)}%`:'—'],['CURRENT STREAK',streak.label],['GAMES PLAYED',total]]) { const cell=el('div','metric');cell.append(el('span','',label),el('strong','',value));metrics.append(cell); }
@@ -279,8 +280,7 @@ for(const [id] of dockTabs)$(id).onkeydown=e=>{
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>setTab(b.dataset.tab);
 for(const b of document.querySelectorAll('[data-goto]'))b.onclick=()=>setTab(b.dataset.goto);
 $('refresh').onclick=async()=>{try{await api('/api/refresh',{});toast('Refresh requested. Upstream cache and retry limits still apply.');}catch(e){toast(e.message);}};
-$('undo').onclick=()=>action({type:'undo'});$('timer').onclick=()=>action(()=>({type:'timer',command:state.session.runningSince!==null?'pause':'start'}));
-$('restart-timer').onclick=async()=>{if(await modal('Restart session clock?',[],'Restart from 00:00:00 and keep running. Scores, result history, and streak remain unchanged.'))action({type:'timer',command:'restart'});};
+$('undo').onclick=()=>action({type:'undo'});
 $('reset').onclick=()=>setTab('recap');
 $('edit-totals').onclick=async()=>{const t=totals(state.session),values=await modal('Correct session totals',['win','loss','draw'].map(k=>({key:k,label:k,type:'number',value:t[k],min:0,max:10000})),'Corrections change totals; recorded result order and streak stay intact.');if(values)action({type:'totals',totals:values});};
 $('active-mode').onchange=e=>change(s=>s.activeMode=e.target.value);
@@ -325,6 +325,7 @@ editor.addEventListener('pointerdown',e=>{
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
+const timerControls=createTimerControls({getState:()=>state,action,confirmChange:message=>modal('Session timer',[],message,'Confirm')});
 const recapControls=createRecapControls({api,accept,confirmChange:message=>modal('Session recap',[],message,'Confirm'),resetSession:expectedSessionKey=>action({type:'reset',expectedSessionKey})});
 const starterControls=createStarterControls({getState:()=>state,action,confirmChange:message=>modal('Starter templates',[],message,'Confirm'),settle:()=>queue,render:()=>renderTab()});
 const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});

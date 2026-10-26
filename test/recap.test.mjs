@@ -61,3 +61,20 @@ test('recap backup validation rejects malformed data and legacy backups preserve
   assert.throws(()=>validateRecap({...s.recap,snapshots:[{...s.recap.snapshots[0],stats:{...s.recap.snapshots[0].stats,unknown:'x'}}]}),/statistics/);
 });
 
+
+test('duration captures server elapsed, refreshes explicitly, freezes on completion and is not a ticking conflict key',t=>{
+ t.mock.timers.enable({apis:['Date'],now:100000});
+ let s=applyAction(defaults(),{type:'timer',command:'start'});const key=recapSessionKey(s);
+ t.mock.timers.tick(5000);s=action(s,'save-draft',{kind:'complete',text:'Captured',refreshStats:true});
+ assert.equal(s.recap.draft.stats.duration,5000);t.mock.timers.tick(10000);assert.equal(recapSessionKey(s),key);
+ s=action(s,'save-draft',{kind:'complete',text:'Captured',refreshStats:false});assert.equal(s.recap.draft.stats.duration,5000);
+ s=action(s,'save-draft',{kind:'complete',text:'Captured',refreshStats:true});assert.equal(s.recap.draft.stats.duration,15000);
+ const text=renderRecapTemplate('Duration {duration}',s.recap.draft.stats);assert.equal(text,'Duration 00:00:15');
+ t.mock.timers.tick(5000);s=action(s,'complete',{text,reset:true});assert.equal(s.recap.snapshots[0].stats.duration,15000);
+ s=applyAction(s,{type:'undo'});t.mock.timers.tick(5000);assert.equal(s.recap.snapshots[0].stats.duration,15000);
+ const legacy=structuredClone(s.recap);delete legacy.snapshots[0].stats.duration;validateRecap(legacy);
+ assert.equal(renderRecapTemplate('{duration}',legacy.snapshots[0].stats),'unavailable');
+ const restored=applyAction(defaults(),{type:'import',expectedRecapRevision:0,data:{version:1,settings:settingsOf(s),session:s.session,recap:legacy}});
+ assert.equal(Object.hasOwn(restored.recap.snapshots[0].stats,'duration'),false);
+ for(const duration of [-1,null,'5000',Infinity]){const bad=structuredClone(legacy);bad.snapshots[0].stats.duration=duration;assert.throws(()=>validateRecap(bad),/statistics/);}
+});

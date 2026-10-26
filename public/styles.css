@@ -70,3 +70,6 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 
 /* Keep long creator names from consuming the ticker message area. */
 .ticker-tag{max-width:38%;min-width:0}.ticker-tag-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.timer-panel #reset-timer{margin-top:8px}.timer-panel .timer-hint{margin:12px 0 0}.timer-panel #timer-status{margin:0 0 10px;color:var(--cyan)}
+.dock-score #timer,.dock-score #reset-timer,.dock-score #restart-timer{width:100%;margin:6px 0 0;font-size:12px;padding:9px}.dock-score .timer-hint{font-size:11px}

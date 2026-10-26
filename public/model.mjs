@@ -69,7 +69,7 @@ export function streaks(session) {
   return { current, kind, best, label: current ? `${current}${kind === 'win' ? 'W' : 'L'}` : '—' };
 }
 export function rating(state, mode) { return state.overrides[mode] ?? state.api.stats?.[`chess_${mode}`]?.last?.rating ?? null; }
-export function elapsed(session, now = Date.now()) { return session.elapsed + (session.runningSince ? Math.max(0, now - session.runningSince) : 0); }
+export function elapsed(session, now = Date.now()) { return session.elapsed + (session.runningSince!==null ? Math.max(0, now - session.runningSince) : 0); }
 export function clock(ms) { const s = Math.floor(ms / 1000); return [Math.floor(s/3600), Math.floor(s/60)%60, s%60].map(n => String(n).padStart(2,'0')).join(':'); }
 export const tickerMessages=state=>tickerEntries(state).map(m=>m.text);
 export function tickerEntries(state) {
