@@ -59,7 +59,6 @@ export function createSocialsControls({getState,action,change,api,button,inputFi
     finally{busy=false;host.disabled=false;$('socials-save').disabled=false;$('socials-reload').disabled=false;}
   };
   $('socials-reload').onclick=()=>{if(!busy){undo=null;load();}};
-  $('socials-visible').onchange=e=>change(s=>s.widgets.socials.visible=e.target.checked);
   for(const command of ['previous','next'])$(`socials-${command}`).onclick=()=>action({type:'socials-playback',command,currentId:$('socials-preview').dataset.socialId});
   $('socials-pause').onclick=()=>action({type:'socials-playback',command:getState().socialsPlayback.paused?'play':'pause'});
   $('socials-library').onclick=async()=>{
@@ -67,5 +66,5 @@ export function createSocialsControls({getState,action,change,api,button,inputFi
     try{const result=await api('/api/social-icons');for(const icon of result.icons){const row=document.createElement('div');row.className='button-row';const img=document.createElement('img');img.className='social-icon';img.src=socialIconURL({icon:icon.id});img.alt='Custom icon';row.append(img,button(icon.referenced?'Used by entry / preset':'Delete unused icon',async()=>{try{if(busy||[draft,undo?.before].filter(Boolean).some(s=>s.items.some(e=>socialPlatforms(e).some(p=>p.icon===icon.id))))throw Error('Icon is used by your draft or undo history');await api('/api/social-icons/delete',{id:icon.id});row.remove();message('Unused icon deleted.');}catch(e){message(e.message);}}));row.lastChild.disabled=icon.referenced||draft?.items.some(e=>socialPlatforms(e).some(p=>p.icon===icon.id))||undo?.before.items.some(e=>socialPlatforms(e).some(p=>p.icon===icon.id));library.append(row);}if(!result.icons.length)library.textContent='No uploaded icons.';}catch(e){message(e.message);}
   };
   window.addEventListener('beforeunload',e=>{if(dirty||busy){e.preventDefault();e.returnValue='';}});
-  return {render(){const state=getState();if(!draft||!dirty&&!busy&&!same(baseline,state.socials))load();if(dirty&&!same(baseline,state.socials)&&!busy)message('Socials changed elsewhere. Your draft is retained. Reload current socials discards this draft.');$('socials-visible').checked=state.widgets.socials.visible;$('socials-pause').textContent=state.socialsPlayback.paused?'Resume':'Pause';preview.update({...state.socials,font:24},state.socialsPlayback);}};
+  return {render(){const state=getState();if(!draft||!dirty&&!busy&&!same(baseline,state.socials))load();if(dirty&&!same(baseline,state.socials)&&!busy)message('Socials changed elsewhere. Your draft is retained. Reload current socials discards this draft.');$('socials-pause').textContent=state.socialsPlayback.paused?'Resume':'Pause';preview.update({...state.socials,font:24},state.socialsPlayback);}};
 }

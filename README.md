@@ -391,7 +391,7 @@ Scale is `min(viewportWidth / designWidth, viewportHeight / designHeight)`, with
 
 ### One broadcast, two layouts
 
-Select **Landscape** or **Portrait** in **Layout studio**. Positions, sizes, visibility, widget scale, locks and snapping are saved separately. The initial portrait preset places a compact two-column stats header above a clear board region, with scores and CTA below. The **Portrait typography** controls tune portrait card, ticker, tips, socials and credits text independently; the existing appearance/content editors retain their landscape typography controls. Colors and content remain shared. Use Layout studio to toggle portrait widgets; existing dock/editor visibility controls continue to control landscape.
+Select **Landscape** or **Portrait** in **Layout studio**. Positions, sizes, visibility, widget scale, locks and snapping are saved separately. The initial portrait preset places a compact two-column stats header above a clear board region, with scores and CTA below. The **Portrait typography** controls tune portrait card, ticker, tips, socials and credits text independently; the existing appearance/content editors retain their landscape typography controls. Colors and content remain shared. Use the dock Visibility section or contextual widget controls to toggle Landscape and Portrait independently; Layout studio uses the same saved visibility values.
 
 Optional safe-area guides have configurable top/right/bottom/left insets. Board and camera reservations have configurable rectangles and individual enable switches. Drag a reservation label to move it, or its cyan bottom-right handle to resize. The existing Snap to grid option uses the same 20-unit design grid and canvas edges; Lock aspect ratio preserves the current rectangle ratio when resizing, including width/height field edits. Layout lock disables guide dragging. Escape, pointer cancellation, leaving the editor, or switching orientation cancels an unfinished drag. Numeric guide edits remain available for precise placement. Landscape and portrait guide geometry and ratio locks are saved independently. Guide edits update only that guide and reject a stale edit if another client changed it, preserving newer widget changes. They are editor guides only: no board, camera, placeholder or guide is rendered by the broadcast output. Supply board and camera as separate OBS sources underneath the transparent overlay, and position the widgets around those regions.
 
@@ -523,3 +523,30 @@ preserve unrelated fields and reject conflicting saved values.
 
 For the reproducible synthetic browser fixture and the verification record, see
 [PRESENTATION_QA.md](PRESENTATION_QA.md).
+
+## Quick widget visibility
+
+Expand **Visibility** in any dock tab to show or hide Stats, Scoreboard, CTA ticker,
+Chess tips, Credits (main overlay), Socials, Goals, or Session Clock independently
+for **Landscape** and **Portrait**. Each ON/OFF button saves immediately. The
+section stays available across dock tabs; its collapse preference is local to this
+browser and does not change broadcast settings. CTA, Tips, Goals, Socials and
+Credits also have contextual orientation controls.
+
+All controls and Layout studio follow the same saved values through live updates.
+A pending control says Saving and ignores repeated activation while retaining
+keyboard focus. Conflicting/stale requests fail safely: the latest server values
+are reloaded and an error explains how to retry. If disconnected, the last confirmed
+values remain visible. Requests and recovery reads time out after ten seconds each.
+After reconnecting, retry the desired toggle. Reload older open control pages after
+upgrading so their layout edits use the concurrency guard.
+
+Visibility never resets session time, scores, goals, content, or playback. Hidden
+widgets continue their existing timelines. Credits visibility only affects its
+widget in `/overlay`; it does not control `/credits`. Showing the main-overlay
+credits no longer starts or restarts them. Use **Play live** or **Restart live**
+explicitly; a newly opened main overlay waits for a new playback command. The
+standalone credits source retains its existing OBS source-activation behavior.
+Board/camera reservations remain editor guides and are not visibility rows.
+
+See [VISIBILITY_QA.md](VISIBILITY_QA.md) for verification and limitations.

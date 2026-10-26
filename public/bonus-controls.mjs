@@ -25,7 +25,7 @@ export function createBonusControls({getState,change,action,button,inputField,co
     options.append(inputField('Timing','select',c.timing,v=>change(s=>s.credits.timing=v),{items:[['duration','Total duration'],['speed','Scroll speed']]}));
     for(const [key,label,min,max] of [['duration','Duration (seconds)',5,1800],['speed','Speed (px / second)',10,300],['font','Text size',20,90],['heading','Heading size',24,120],['brandSize','Brand size',30,180],['gap','Section spacing',10,180],['opacity','Background opacity (%)',0,100]])options.append(inputField(label,'number',c[key],v=>change(s=>s.credits[key]=v),{min,max}));
     for(const [key,label] of [['background','Background'],['accent','Brand color'],['headingColor','Heading color'],['detailColor','Detail color']])options.append(inputField(label,'color',c[key],v=>change(s=>s.credits[key]=v)));
-    options.append(inputField('Loop credits','checkbox',c.loop,v=>change(s=>s.credits.loop=v)),inputField('Show on main overlay','checkbox',state.widgets.credits.visible,v=>change(s=>s.widgets.credits.visible=v)));
+    options.append(inputField('Loop credits','checkbox',c.loop,v=>change(s=>s.credits.loop=v)));
     const host=$('credits-sections');host.replaceChildren();
     c.sections.forEach((section,index)=>{
       const block=node('section','bonus-editor-card'),head=node('div','button-row');
@@ -48,7 +48,7 @@ export function createBonusControls({getState,change,action,button,inputField,co
   function renderTips(){
     textControls.update();
     const state=getState(),t=state.tips,host=$('tips-items'),options=$('tips-options');host.replaceChildren();options.replaceChildren();
-    options.append(inputField('Rotation interval (seconds)','number',t.interval,v=>change(s=>s.tips.interval=v),{min:5,max:300}),inputField('Order','select',t.order,v=>change(s=>s.tips.order=v),{items:[['sequential','Sequential'],['shuffle','Shuffle']]}),inputField('Tip text size','number',t.font,v=>change(s=>s.tips.font=v),{min:18,max:60}),inputField('Show tips widget','checkbox',state.widgets.tips.visible,v=>change(s=>s.widgets.tips.visible=v)));
+    options.append(inputField('Rotation interval (seconds)','number',t.interval,v=>change(s=>s.tips.interval=v),{min:5,max:300}),inputField('Order','select',t.order,v=>change(s=>s.tips.order=v),{items:[['sequential','Sequential'],['shuffle','Shuffle']]}),inputField('Tip text size','number',t.font,v=>change(s=>s.tips.font=v),{min:18,max:60}));
     t.items.forEach((tip,index)=>{
       const item=node('section','bonus-editor-card'),controls=node('div','button-row'),tipIn=s=>s.tips.items.find(x=>x.id===tip.id);
       controls.append(inputField('Enable tip','checkbox',tip.enabled,v=>change(s=>tipIn(s).enabled=v)));

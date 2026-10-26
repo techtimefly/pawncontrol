@@ -1,5 +1,6 @@
+import {createVisibilityControls,acceptServerState} from './visibility-controls.mjs';
 import {bindGuideEditor,reservationGeometry} from './guide-editor.mjs';
-import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
+import {layoutState,layoutDimensions,portraitDefaults,widgetGeometryPatch} from './layouts.mjs';
 import {createRecapControls} from './recap-controls.mjs';
 import {createGoalsControls} from './goals-controls.mjs';
 import {createTimerControls} from './timer-controls.mjs';
@@ -19,8 +20,8 @@ const title={goals:'Goals',recap:'Session recap & share',session:'Session overvi
 const dockTabs=[['dock-score-tab','session'],['dock-goals-tab','goals'],['dock-cta-tab','ticker'],['dock-credits-tab','credits'],['dock-tips-tab','tips'],['dock-socials-tab','socials']];
 const readableTime=value=>value?new Date(value).toLocaleString():'Not available yet';
 function toast(message) { $('toast').textContent=message; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').hidden=true,4500); }
-async function api(path, data) {
-  const res=await fetch(path,data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+async function api(path, data, options={}) {
+  const res=await fetch(path,{...options,...(data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})});
   const result=await res.json();
   if(!res.ok) { if(res.status===401&&path!=='/api/login') showLogin(); throw new Error(result.error || 'Request failed'); }
   return result;
@@ -35,7 +36,7 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','goalPresentation','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','goalPresentation','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,expectedLayout:{widgets:before.widgets,portrait:before.portrait},settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
 function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
 function editorState(){return layoutState(state,editorLayout);}
 function renderGuides(){
@@ -55,7 +56,7 @@ function renderGuideControls(){
 }
 function showLogin() { recapControls.clear(); goalsControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
 async function start() {
-  try { state=await api('/api/state'); admin=await api('/api/admin'); }
+  try { state=acceptServerState(state,await api('/api/state'),retiredInstances); admin=await api('/api/admin'); }
   catch { showLogin(); return; }
   $('login').hidden=true; $('app').hidden=false;
   if(dockMode){
@@ -68,7 +69,8 @@ async function start() {
   events.onerror=()=>{setConnection(false);void api('/api/state').catch(()=>{});};
   resizePreviews();
 }
-function accept(next,force=false) { if(!next || (next.instance===state?.instance && next.revision<state?.revision))return;state=next;starterControls.update();ctaTextControls.update();render(force); }
+const retiredInstances=new Set();
+function accept(next,force=false) { const accepted=acceptServerState(state,next,retiredInstances);if(accepted===state)return;state=accepted;starterControls.update();ctaTextControls.update();render(force); }
 function setConnection(connected){
   for(const id of ['connection-dot','dock-connection-dot'])$(id).classList.toggle('connected',connected);
   for(const id of ['connection-label','dock-connection-label'])$(id).textContent=connected?'Server connected':'Reconnecting…';
@@ -94,6 +96,7 @@ async function setTab(next) {
 function render(force=false) {
   if(!state)return;
   const busy=document.activeElement?.matches('input,textarea,select');
+  visibilityControls.render();
   renderSessionSummary();
   if((!busy||force)&&!dragging&&!starterControls.busy)renderTab();
   else if(tab==='layout'&&!dragging)renderCanvas($('editor-canvas'),editorState(),{editor:true});
@@ -155,6 +158,7 @@ function renderSession() {
   }
   if(state.session.results.length>40)history.append(el('p','small-note','Showing the latest 40 results. The backup includes all results.'));
   if(Object.values(state.session.corrections).some(Boolean))history.prepend(el('p','small-note','Manual total corrections are active; streak uses recorded results only.'));
+  visibilityControls.render();
   renderSessionSummary();
 }
 function renderStats() {
@@ -183,8 +187,8 @@ function renderLayout() {
   $('lock-layout').textContent=view.layoutLocked?'Unlock layout':'Lock layout';$('snap').checked=view.snap;
   const list=$('widget-list');list.replaceChildren();
   for(const id of WIDGET_IDS) {
-    const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=view.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);check.onchange=()=>changeLayout(s=>s.widgets[id].visible=check.checked);
-    row.append(check,button(id==='clock'?'Session Clock':id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
+    const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=view.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);
+    row.append(check,button(id==='clock'?'Session Clock':id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);visibilityControls.bind(check,editorLayout,id);
   }
   const fields=$('widget-fields');fields.replaceChildren();const w=view.widgets[selected];
   fields.append(el('h3','',`${selected.charAt(0).toUpperCase()+selected.slice(1)} position`));
@@ -224,7 +228,6 @@ function renderTickerEditor() {
   options.append(el('p','small-note',`Current mode: ${state.ticker.mode==='scroll'?'Continuous scroll — all enabled messages travel across the ticker.':`Message rotation — one message at a time, changing every ${state.ticker.interval} seconds. Choose Continuous scroll for moving text.`}${state.ticker.paused?' Ticker is paused.':''}`));
   const defs=[['mode','Display mode','select',{items:[['rotate','Message rotation'],['scroll','Continuous scroll']]}],['interval','Rotation interval (seconds)','number',{min:5,max:300}],['speed','Scroll speed (px / second)','number',{min:20,max:300}],['gap','Separator spacing (px)','number',{min:0,max:300}],['pause','Pause between scroll cycles (seconds)','number',{min:0,max:30}],['direction','Scroll direction','select',{items:[['left','Left'],['right','Right']]}],['font','Font size at 1440p','number',{min:18,max:60}],['opacity','Background opacity (%)','number',{min:0,max:100}],['separator','Message separator','text',{maxlength:12}],['paused','Pause ticker','checkbox',{}]];
   for(const [key,label,type,opts] of defs)options.append(inputField(label,type,state.ticker[key],v=>change(s=>s.ticker[key]=v),opts));
-  options.append(inputField('Show ticker','checkbox',state.widgets.ticker.visible,v=>change(s=>s.widgets.ticker.visible=v)));
   renderTickerPreview();
 }
 function renderTickerPreview() {
@@ -334,7 +337,7 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape')guideEditor.cancel();}
 const editor=$('editor-canvas');
 editor.addEventListener('pointerdown',e=>{
   const widget=e.target.closest('[data-widget]');if(!widget)return;
-  const view=editorState(),{width,height}=layoutDimensions(editorLayout);
+  const targetLayout=editorLayout,view=editorState(),{width,height}=layoutDimensions(targetLayout);
   const id=widget.dataset.widget;selected=id;const original=structuredClone(view.widgets[id]);
   if(view.layoutLocked||original.locked){renderLayout();return;}
   e.preventDefault();dragging=true;widget.setPointerCapture(e.pointerId);
@@ -348,10 +351,13 @@ editor.addEventListener('pointerdown',e=>{
     else {next.x=Math.max(0,Math.min(width-original.w,snap(original.x+dx)));next.y=Math.max(0,Math.min(height-original.h,snap(original.y+dy)));if(Math.abs(next.x-(width-next.w))<20)next.x=width-next.w;if(Math.abs(next.y-(height-next.h))<20)next.y=height-next.h;}
     widget.style.left=`${next.x}px`;widget.style.top=`${next.y}px`;widget.style.width=`${next.w}px`;widget.style.height=`${next.h}px`;
   };
-  const finish=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;changeLayout(s=>s.widgets[id]=next);};
+  const finish=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;change(s=>Object.assign((targetLayout==='portrait'?s.portrait:s).widgets[id],widgetGeometryPatch(original,next)));};
   const cancel=()=>{widget.removeEventListener('pointermove',move);widget.removeEventListener('pointerup',finish);widget.removeEventListener('pointercancel',cancel);dragging=false;renderLayout();};
   widget.addEventListener('pointermove',move);widget.addEventListener('pointerup',finish);widget.addEventListener('pointercancel',cancel);
 });
+const visibilityControls=createVisibilityControls({getState:()=>state,api,accept});
+if(dockMode)visibilityControls.dock($('dock-visibility'));
+for(const [host,id] of [['goal-visibility-controls','goal'],['socials-visibility-controls','socials'],['ticker-visibility-controls','ticker'],['tips-visibility-controls','tips'],['credits-visibility-controls','credits']])visibilityControls.mount($(host),[id]);
 const timerControls=createTimerControls({getState:()=>state,action,confirmChange:message=>modal('Session timer',[],message,'Confirm')});
 const recapControls=createRecapControls({api,accept,confirmChange:message=>modal('Session recap',[],message,'Confirm'),resetSession:expectedSessionKey=>action({type:'reset',expectedSessionKey})});
 const goalsControls=createGoalsControls({getState:()=>state,api,accept,change,confirmChange:message=>modal('Goals',[],message,'Confirm')});

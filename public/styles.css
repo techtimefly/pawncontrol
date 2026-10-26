@@ -118,3 +118,15 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 
 /* Goals follow the shared two-column layout; source order keeps editing first when stacked. */
 .goals-columns{align-items:start}.goals-main,.goals-sidebar{min-width:0}
+
+/* Visibility controls remain outside tab panels and preserve keyboard focus. */
+.dock-visibility{display:none}.dock-mode .dock-visibility{display:block;margin:12px 0;padding:12px;border:1px solid var(--line,#394354);border-radius:10px;min-width:0}
+.dock-visibility summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:700}
+.visibility-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;margin:10px 0;min-width:0}
+.visibility-row>span{grid-column:1/-1;overflow-wrap:anywhere;font-weight:600}
+.visibility-toggle{min-width:0;min-height:44px;padding:8px 4px;white-space:normal;font-size:12px}
+.visibility-toggle[aria-pressed=true]{background:#164c3c;color:#d5fff0;border-color:#4bb98b}
+.visibility-toggle[aria-pressed=false]{background:#252d3c;color:#e5e9f0}
+.visibility-toggle:focus-visible,.dock-visibility summary:focus-visible{outline:3px solid #71c9ff;outline-offset:2px}
+
+.visibility-toggle[aria-disabled=true]{opacity:.65;cursor:wait}

@@ -48,7 +48,6 @@ export function createGoalsControls({getState,api,accept,change,confirmChange}) 
     const config=editing?{title:goal.title,target:goal.target,scope:goal.scope,baseline:goal.baseline}:goal;
     if(await command(editing?'edit':'add',{...(editing?{id:editing}:{}),goal:config},draftRevision)){$('goal-form').hidden=true;editing=null;}
   };
-  for(const [id,portrait] of [['goal-visible-landscape',false],['goal-visible-portrait',true]])$(id).onchange=()=>{const checked=$(id).checked;void change(s=>{(portrait?s.portrait:s).widgets.goal.visible=checked;});};
   function render(){
     const s=getState();if(!s?.goalTracker)return;
     renderGoalPresentation($('goal-presentation'),s,async(layout,expectedPresentation,presentation)=>{
@@ -57,7 +56,6 @@ export function createGoalsControls({getState,api,accept,change,confirmChange}) 
     });
     summaryKey=JSON.stringify(s.goalTracker.items.map(g=>goalSummary(s,g)));
     $('goals-corrections-note').hidden=!Object.values(s.session.corrections).some(v=>v!==0);
-    $('goal-visible-landscape').checked=s.widgets.goal.visible;$('goal-visible-portrait').checked=s.portrait.widgets.goal.visible;
     $('goal-save').disabled=busy;$('goal-add').disabled=busy||s.goalTracker.items.length>=20;
     $('goal-limit').textContent=`${s.goalTracker.items.length} / 20 stored goals`;
     const active=$('goals-list'),archived=$('goals-archived');active.replaceChildren();archived.replaceChildren();
