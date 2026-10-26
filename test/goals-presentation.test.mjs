@@ -42,3 +42,11 @@ test('granular orientation updates merge simultaneous clients and reject same-or
  const initial=defaults(),landscape={...initial.goalPresentation.landscape,mode:'horizontal'},portrait={...initial.goalPresentation.portrait,chart:'donut'};
  const a={type:'goal-presentation',layout:'landscape',expectedPresentation:initial.goalPresentation.landscape,presentation:landscape};let s=applyAction(initial,a);s=applyAction(s,{type:'goal-presentation',layout:'portrait',expectedPresentation:initial.goalPresentation.portrait,presentation:portrait});assert.deepEqual(s.goalPresentation,{landscape,portrait});assert.throws(()=>applyAction(s,{...a,presentation:{...landscape,chart:'bar'}}),/changed elsewhere/);assert.deepEqual(applyAction(s,a).goalPresentation,s.goalPresentation);
 });
+
+test('presentation controls preserve numeric drafts, then refresh expected values after save',async()=>{
+ const {renderGoalPresentation}=await import('../public/goals-presentation-controls.mjs');const before=globalThis.document;
+ class Element{constructor(){this.children=[];}append(...nodes){this.children.push(...nodes);}replaceChildren(){this.children=[];}contains(node){return node===this||this.children.some(child=>child.contains?.(node));}}
+ globalThis.document={createElement:()=>new Element(),activeElement:null};
+ try{const host=new Element(),s=defaults();const save=(layout,expected,presentation)=>{assert.deepEqual(expected,s.goalPresentation[layout]);s.goalPresentation[layout]=presentation;renderGoalPresentation(host,s,save);};renderGoalPresentation(host,s,save);let group=host.children[0],mode=group.children[1].children[0];globalThis.document.activeElement=mode;mode.value='rotating';mode.onchange();assert.notEqual(host.children[0],group);group=host.children[0];let chart=group.children[2].children[0];chart.value='donut';chart.onchange();assert.equal(s.goalPresentation.landscape.mode,'rotating');assert.equal(s.goalPresentation.landscape.chart,'donut');group=host.children[0];const dwell=group.children[4].children[0];globalThis.document.activeElement=dwell;dwell.value='25';dwell.oninput();renderGoalPresentation(host,s,save);assert.equal(host.children[0],group);assert.equal(dwell.value,'25');dwell.onchange();assert.equal(s.goalPresentation.landscape.dwell,25);assert.notEqual(host.children[0],group);
+ }finally{globalThis.document=before;}
+});

@@ -49,5 +49,5 @@ export function renderGoal(wrapper,s) {
   }
   wrapper._goalSuppressAnimation=false;if(handle)wrapper.append(handle);
 }
-export function suppressGoalAnimation(canvas){const wrapper=canvas.querySelector('[data-widget="goal"]');if(wrapper){wrapper._goalValues=new Map();wrapper._goalSuppressAnimation=true;}}
+export function suppressGoalAnimation(canvas){const wrapper=canvas.querySelector('[data-widget="goal"]');if(wrapper){wrapper._goalValues=new Map();wrapper._goalSummaryKey=null;wrapper._goalSuppressAnimation=true;}}
 export function tickGoal(canvas,s){const wrapper=canvas.querySelector('[data-widget="goal"]');if(wrapper)renderGoal(wrapper,s);}
