@@ -48,3 +48,19 @@ test('recap controls preserve manual text through refresh, failures, rerenders a
     assert.deepEqual(state.recap.snapshots[0].stats,frozen);assert.equal(get('recap-text').value,'Revised second');
   }finally{globalThis.document=oldDocument;globalThis.window=oldWindow;}
 });
+
+test('first template application pins authoritative duration before text generation',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:100000});
+ class Element{constructor(){this.value='';this.children=[];}append(...c){this.children.push(...c);}replaceChildren(...c){this.children=c;}focus(){}select(){}}
+ const elements=new Map(),get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+ const oldDocument=globalThis.document,oldWindow=globalThis.window;
+ globalThis.document={getElementById:get,createElement:()=>new Element()};globalThis.window={addEventListener(){}};
+ let state=applyAction(defaults(),{type:'timer',command:'start'});state.recap=recapDefaults();
+ const api=async(path,a)=>{if(a)state=applyAction(state,a);return {recap:structuredClone(state.recap),stats:recapStats(state),sessionKey:recapSessionKey(state),state};};
+ try{
+ const controls=createRecapControls({api,accept(){},confirmChange:async()=>true,resetSession:async()=>true});controls.render();await new Promise(r=>setImmediate(r));
+ get('recap-live-template').value='Elapsed {duration}';t.mock.timers.tick(5000);await get('recap-apply-template').onclick();
+ assert.equal(get('recap-text').value,'Elapsed 00:00:05');assert.equal(state.recap.draft.stats.duration,5000);
+ t.mock.timers.tick(10000);await get('recap-complete').onclick();assert.equal(state.recap.snapshots[0].stats.duration,5000);assert.equal(state.recap.snapshots[0].text,'Elapsed 00:00:05');
+ }finally{globalThis.document=oldDocument;globalThis.window=oldWindow;}
+});

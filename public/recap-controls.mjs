@@ -1,4 +1,5 @@
 import {renderRecapTemplate} from './recap-model.mjs';
+import {clock} from './model.mjs';
 
 // A rejected clipboard promise is never reported as success. Selection is the fallback.
 export async function copyRecap(textarea, clipboard=globalThis.navigator?.clipboard) {
@@ -22,7 +23,8 @@ export function createRecapControls({api,accept,confirmChange,resetSession}) {
     for(const [label,value] of [['Wins',stats.wins],['Losses',stats.losses],['Draws',stats.draws],['Games played',stats.games],['Win rate',stats.winRate===null?'N/A':`${stats.winRate}%`],['Best winning streak',stats.bestStreak],['Current rating',`${stats.mode} · ${stats.rating??'unavailable'}`]]){
       const item=document.createElement('div');item.className='metric';const caption=document.createElement('span');caption.textContent=label;const number=document.createElement('strong');number.textContent=value;item.append(caption,number);host.append(item);
     }
-    $('recap-stats-note').textContent='Win rate = wins / all games (including draws), rounded. No games = N/A. Best streak uses ordered recorded results only.'+(stats.hasCorrections?' Manual total corrections are active and do not change the recorded streak.':'');
+    const duration=document.createElement('div');duration.className='metric';const label=document.createElement('span');label.textContent='Captured duration';const value=document.createElement('strong');value.textContent=stats.duration===undefined?'unavailable':clock(stats.duration);duration.append(label,value);host.append(duration);
+    $('recap-stats-note').textContent='Duration is captured with statistics; refresh explicitly before completing to include more time. Completed recaps stay frozen. Win rate = wins / all games (including draws), rounded. No games = N/A. Best streak uses ordered recorded results only.'+(stats.hasCorrections?' Manual total corrections are active and do not change the recorded streak.':'');
   }
   function draw(){
     if(!data)return;
@@ -81,6 +83,8 @@ export function createRecapControls({api,accept,confirmChange,resetSession}) {
   $('recap-apply-template').onclick=async()=>{
     if(!data||selected||busy)return;
     if(!await confirmChange('Replace the message text with the selected template, using the displayed captured statistics?'))return;
+    // Pin the first template to authoritative saved statistics, including duration.
+    if(!data.recap.draft&&!await save(true))return;
     const kind=$('recap-kind').value,template=$(kind==='live'?'recap-live-template':'recap-complete-template').value;
     text.value=renderRecapTemplate(template,data.recap.draft?.stats??data.stats,{streamLink:$('recap-link').value,hashtags:$('recap-hashtags').value});mark();
   };
@@ -90,6 +94,10 @@ export function createRecapControls({api,accept,confirmChange,resetSession}) {
   };
   async function complete(reset){
     if(busy||!data||selected)return;
+    if(!data.recap.draft){
+      if(await save(true))status('Statistics captured. Review the captured duration and text, or Apply template, then save the completed recap.');
+      return;
+    }
     if(!await confirmChange(reset?'Save this completed recap, then reset session scores, result history and timer? Other settings stay unchanged.':'Save this text and the displayed statistics as a completed recap? Statistics will freeze.'))return;
     if(!await save(false))return;
     if(await command('complete',{text:text.value,reset,expectedSessionKey:data.sessionKey})){
