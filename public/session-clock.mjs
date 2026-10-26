@@ -1,6 +1,6 @@
 export function clockStyleDefaults() { return {font:64,family:'sans-serif',color:'#f2f4fa',background:'#272f40',opacity:95,showStatus:true}; }
 export function sessionClockDefaults() { return {landscape:clockStyleDefaults(),portrait:clockStyleDefaults()}; }
-export function clockWidget(layout='landscape') { return {x:60,y:layout==='portrait'?320:970,w:480,h:150,scale:1,visible:false,locked:false,z:4}; }
+export function clockWidget(layout='landscape') { return {x:60,y:layout==='portrait'?350:970,w:480,h:150,scale:1,visible:false,locked:false,z:4}; }
 export function validateSessionClock(value) {
   if(!value||Object.keys(value).some(k=>!['landscape','portrait'].includes(k)))throw Error('Invalid session clock settings');
   for(const layout of ['landscape','portrait']) {

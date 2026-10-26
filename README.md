@@ -480,3 +480,46 @@ Choose one **Featured** goal, then enable its widget independently in landscape 
 Recap statistics capture goal outcomes with the other session statistics. Explicit refresh updates a draft; completing freezes the captured results, including when completion resets the session atomically. Later edits to goals cannot rewrite saved recaps. Legacy recaps without goals show unavailable. Backups include goals and manual undo history; legacy backups remain supported. Concurrent goal edits reject stale revisions instead of replacing newer changes; reload saved values before retrying. The API deduplicates the latest 100 goal operation IDs. Goal writes use the same authenticated controls and origin protections as other actions; overlay tokens remain read-only.
 
 Legacy backup restore without goal data clears the current goal list, as explained by the restore confirmation. Archived goals for the current session are included when capturing a recap; deleting a goal before capture removes it from that future capture. Saved snapshots remain immutable.
+
+## Session Clock and goal presentation
+
+In **Layout studio**, enable **Session Clock** and select it to adjust its position,
+size, font family/size, text/background colors, background opacity and optional
+status label. Landscape and portrait have independent placement, visibility and
+styles. New and upgraded installations keep the clock hidden. The widget uses the
+existing session timer: Session, the combined dock and `/dock/score` control the
+same start/pause/resume/reset/restart state. Hiding it does not stop the clock;
+resetting the timer does not reset scores or completed recaps.
+
+In **Goals → Goal presentation**, configure each orientation independently:
+
+- **single** shows the first available selected goal; **rotating** cycles one at a time.
+- **stacked** and **horizontal** show up to the configured 1–4 visible cards.
+- Keep **Use featured goal (legacy)** enabled to preserve the previous featured-goal
+  behavior, or disable it, select goals, and use **Earlier/Later** to order them.
+  Empty selections are blank; archived/deleted IDs are skipped without selecting
+  unrelated goals. Selections may contain up to 20 IDs.
+- Rotation dwell is 3–300 seconds. Its slots are anchored to session start, so
+  unrelated updates do not restart the dwell. Reconnected/hidden sources catch up
+  to the current slot; changing the list or dwell recalculates that slot.
+- Choose **none**, **bar** or **donut**. Bar fill changes smoothly; donut changes
+  use a short opacity pulse. Disable **Animate value changes** for static charts.
+  System reduced-motion preferences also disable animations. Initial loads and
+  reconnects render the current value without replaying missed changes.
+
+Rating progress measures movement from a valid starting rating toward the target.
+Stale/missing ratings, unavailable baselines and targets at/below the baseline do
+not produce a fabricated chart. Text still reports the recorded value and status.
+Wins/games continue to count recorded results, not aggregate corrections. Completed
+recaps remain frozen. Historical line charts are deferred; these features do not
+acquire extra historical data.
+
+Increase the widget height/width or lower its visible-card count if a dense stack
+becomes too small to read. Content fits within the saved widget rather than spilling
+onto other sources. Layout presets and backups include both orientations and all
+presentation settings; legacy files retain their existing composition and gain
+hidden/default additions. Focused guide, clock-style and goal-presentation saves
+preserve unrelated fields and reject conflicting saved values.
+
+For the reproducible synthetic browser fixture and the verification record, see
+[PRESENTATION_QA.md](PRESENTATION_QA.md).
