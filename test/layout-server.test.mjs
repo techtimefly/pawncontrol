@@ -60,7 +60,7 @@ test('simultaneous authenticated outputs share live data, persist both compositi
     assert.equal(backup.recap.draft.text,'Private recap alongside both layouts');
     const changed=structuredClone(edited);changed.widgets.tips.visible=false;
     await action({type:'settings',settings:{portrait:changed}});
-    const restored=await action({type:'import',data:backup,expectedRecapRevision:backup.recap.revision});assert.deepEqual(restored.portrait,edited);assert.deepEqual(restored.widgets,widgets);
+    const restored=await action({type:'import',data:backup,expectedRecapRevision:backup.recap.revision,expectedGoalRevision:backup.goalTracker.revision});assert.deepEqual(restored.portrait,edited);assert.deepEqual(restored.widgets,widgets);
     await landscape.reader.cancel();await portrait.reader.cancel();
     await app.close();app=createApp(config);await listen();
     const reconnected=await connect('portrait'),saved=await reconnected.next();

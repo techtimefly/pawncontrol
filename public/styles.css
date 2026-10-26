@@ -73,3 +73,25 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 
 .timer-panel #reset-timer{margin-top:8px}.timer-panel .timer-hint{margin:12px 0 0}.timer-panel #timer-status{margin:0 0 10px;color:var(--cyan)}
 .dock-score #timer,.dock-score #reset-timer,.dock-score #restart-timer{width:100%;margin:6px 0 0;font-size:12px;padding:9px}.dock-score .timer-hint{font-size:11px}
+
+/* The featured goal has transparent surroundings and bounded, wrapping content. */
+.featured-goal-card{width:100%;height:100%;overflow:hidden;box-sizing:border-box;border-radius:var(--radius);background:var(--card-bg);color:var(--ink)}
+.featured-goal-content{width:100%;box-sizing:border-box;padding:.55em .8em;transform-origin:0 0;overflow-wrap:anywhere;line-height:1.2}
+.featured-goal-label{font-size:.38em;letter-spacing:.12em;color:var(--accent);font-weight:700}
+.featured-goal-title{font-size:.75em;font-weight:650;margin:.15em 0;white-space:pre-wrap}
+.featured-goal-value{display:block;font-size:1.15em;color:var(--accent)}
+.featured-goal-detail{font-size:.45em;line-height:1.4;margin-top:.3em;color:var(--quiet)}
+#goals-tab .panel,#goals-tab label,#goals-tab .form-grid{min-width:0}
+#goals-tab input,#goals-tab select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+#goals-tab input[type=checkbox]{width:17px;flex:none}
+#goals-tab .button-row{flex-wrap:wrap;gap:8px}
+#goals-tab button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#goals-status{min-height:1.5em;overflow-wrap:anywhere}
+.goal-editor-card{min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:18px;margin-bottom:14px;overflow-wrap:anywhere}
+.goal-editor-card h3{margin:0;min-width:0}.goal-editor-card .panel-heading{flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.goal-progress-value{font-size:28px;color:var(--cyan)}.goals-archive summary{cursor:pointer;margin:20px 0}
+.dock-combined .dock-tabs{flex-wrap:wrap}.dock-combined .dock-tabs button{flex:1 1 28%}
+.dock-mode #goals-tab .goal-editor-card{padding:12px}.dock-mode #goals-tab .section-heading{flex-direction:row;align-items:center;gap:8px}
+.dock-mode #goals-tab .section-heading h2{font-size:17px}.dock-mode #goals-tab button{font-size:11px;padding:9px}
+.dock-mode #goals-tab .form-grid{grid-template-columns:minmax(0,1fr)}.dock-mode #goals-tab .goals-help{font-size:11px}
+.recap-goals{grid-column:1/-1;overflow-wrap:anywhere}.recap-goal-outcome{padding:8px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.6}

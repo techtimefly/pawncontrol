@@ -1,5 +1,6 @@
 import {layoutState,layoutDimensions,portraitDefaults} from './layouts.mjs';
 import {createRecapControls} from './recap-controls.mjs';
+import {createGoalsControls} from './goals-controls.mjs';
 import {createTimerControls} from './timer-controls.mjs';
 import {createStarterControls} from './starter-controls.mjs';
 import {createCtaTextControls} from './cta-text-controls.mjs';
@@ -13,8 +14,8 @@ const dockMode=location.pathname==='/dock'||location.pathname==='/dock/'?'combin
 if(dockMode){document.body.classList.add('dock-mode',`dock-${dockMode}`);document.title=`Pawn Control · ${dockMode==='combined'?'Stream':dockMode==='score'?'Score':'CTA'} dock`;}
 let editorLayout='landscape';
 let state, admin={}, events, tab='session', selected='stats', dragging=false, queue=Promise.resolve(), toastTimer;
-const title={recap:'Session recap & share',session:'Session overview',layout:'Layout studio',stats:'Stats & visibility',ticker:'CTA ticker',credits:'End credits',tips:'Chess tips',socials:'Social handle callouts',appearance:'Appearance',settings:'Settings & connections'};
-const dockTabs=[['dock-score-tab','session'],['dock-cta-tab','ticker'],['dock-credits-tab','credits'],['dock-tips-tab','tips'],['dock-socials-tab','socials']];
+const title={goals:'Goals',recap:'Session recap & share',session:'Session overview',layout:'Layout studio',stats:'Stats & visibility',ticker:'CTA ticker',credits:'End credits',tips:'Chess tips',socials:'Social handle callouts',appearance:'Appearance',settings:'Settings & connections'};
+const dockTabs=[['dock-score-tab','session'],['dock-goals-tab','goals'],['dock-cta-tab','ticker'],['dock-credits-tab','credits'],['dock-tips-tab','tips'],['dock-socials-tab','socials']];
 const readableTime=value=>value?new Date(value).toLocaleString():'Not available yet';
 function toast(message) { $('toast').textContent=message; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').hidden=true,4500); }
 async function api(path, data) {
@@ -33,7 +34,7 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
 function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
 function editorState(){return layoutState(state,editorLayout);}
 function renderGuides(){
@@ -46,7 +47,7 @@ function renderGuideControls(){
  for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));group.append(grid);}host.append(group);}
  if(editorLayout==='portrait'){host.append(el('h3','','Portrait typography'));for(const [key,label,min,max] of [['font','Stats font',18,60],['padding','Card padding',10,60],['gap','Row gap',4,40],['tickerFont','CTA font',18,60],['tipsFont','Tips font',18,60],['socialsFont','Socials font',18,60],['creditsFont','Credits font',20,90],['creditsHeading','Credits heading',24,120],['creditsBrandSize','Credits brand',30,180],['creditsGap','Credits gap',10,180]])host.append(inputField(label,'number',state.portrait.typography[key],v=>changeLayout(s=>s.typography[key]=v),{min,max}));}
 }
-function showLogin() { recapControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
+function showLogin() { recapControls.clear(); goalsControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
 async function start() {
   try { state=await api('/api/state'); admin=await api('/api/admin'); }
   catch { showLogin(); return; }
@@ -100,6 +101,7 @@ function render(force=false) {
 function renderTab() {
   if(!state)return;
   if(tab==='recap')recapControls.render();
+  if(tab==='goals')goalsControls.render();
   if(tab==='session')renderSession();
   if(tab==='layout')renderLayout();
   if(tab==='stats')renderStats();
@@ -302,7 +304,7 @@ $('open-overlay').onclick=()=>window.open($('overlay-url').value,'_blank','noope
 $('export').onclick=()=>{location.href='/api/export';};
 $('import').onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{if(file.size>6000000)throw new Error('Backup is too large');const data=JSON.parse(await file.text());const expectedRecapRevision=(await api('/api/recap')).recap.revision;if(await modal('Restore backup?',[],'This replaces settings, layouts, and the current session. Backups containing recap data also replace saved recaps and templates; older backups preserve them. Credentials remain unchanged.'))await action({type:'import',data,expectedRecapRevision});}catch(err){toast(err.message);}finally{e.target.value='';}
+  try{if(file.size>6000000)throw new Error('Backup is too large');const data=JSON.parse(await file.text());const expectedRecapRevision=(await api('/api/recap')).recap.revision;const expectedGoalRevision=state.goalTracker.revision;if(await modal('Restore backup?',[],'This replaces settings, layouts, the current session, and goal tracking. A legacy backup without goal data clears all current goals. Backups containing recap data also replace saved recaps and templates; older backups preserve them. Credentials remain unchanged.'))await action({type:'import',data,expectedRecapRevision,expectedGoalRevision});}catch(err){toast(err.message);}finally{e.target.value='';}
 };
 const editor=$('editor-canvas');
 editor.addEventListener('pointerdown',e=>{
@@ -327,12 +329,13 @@ editor.addEventListener('pointerdown',e=>{
 });
 const timerControls=createTimerControls({getState:()=>state,action,confirmChange:message=>modal('Session timer',[],message,'Confirm')});
 const recapControls=createRecapControls({api,accept,confirmChange:message=>modal('Session recap',[],message,'Confirm'),resetSession:expectedSessionKey=>action({type:'reset',expectedSessionKey})});
+const goalsControls=createGoalsControls({getState:()=>state,api,accept,change,confirmChange:message=>modal('Goals',[],message,'Confirm')});
 const starterControls=createStarterControls({getState:()=>state,action,confirmChange:message=>modal('Starter templates',[],message,'Confirm'),settle:()=>queue,render:()=>renderTab()});
 const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});
 new ResizeObserver(resizePreviews).observe(document.querySelector('.desk'));window.addEventListener('resize',resizePreviews);
-setInterval(()=>{if(state){$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),id==='editor-canvas'?editorState():state);}},1000);
+setInterval(()=>{if(state){if(tab==='goals')goalsControls.tick();$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),id==='editor-canvas'?editorState():state);}},1000);
 void start();
 
 for(const kind of ['overlay','credits']){const field=$(`portrait-${kind}-url`);$(`copy-portrait-${kind}-url`).onclick=async()=>{try{await navigator.clipboard.writeText(field.value);toast('Portrait URL copied.');}catch{toast('Reveal the URL and copy it manually.');}};$(`reveal-portrait-${kind}-url`).onclick=()=>field.type=field.type==='password'?'text':'password';}

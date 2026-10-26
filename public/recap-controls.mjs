@@ -24,6 +24,10 @@ export function createRecapControls({api,accept,confirmChange,resetSession}) {
       const item=document.createElement('div');item.className='metric';const caption=document.createElement('span');caption.textContent=label;const number=document.createElement('strong');number.textContent=value;item.append(caption,number);host.append(item);
     }
     const duration=document.createElement('div');duration.className='metric';const label=document.createElement('span');label.textContent='Captured duration';const value=document.createElement('strong');value.textContent=stats.duration===undefined?'unavailable':clock(stats.duration);duration.append(label,value);host.append(duration);
+    const goals=document.createElement('section');goals.className='recap-goals';const heading=document.createElement('h3');heading.textContent='Captured goal outcomes';goals.append(heading);
+    if(!Array.isArray(stats.goals)||!stats.goals.length){const note=document.createElement('p');note.className='small-note';note.textContent=Array.isArray(stats.goals)?'No goals were tracked in this snapshot.':'Goal outcomes unavailable in this legacy recap.';goals.append(note);}
+    for(const g of stats.goals??[]){const row=document.createElement('div');row.className='recap-goal-outcome';row.textContent=`${g.title}: ${g.current??'unavailable'} / ${g.target} · ${g.complete?'target reached':'not reached'} · ${g.scope}${g.mode?' · '+g.mode:''}${g.status!=='current'?' · '+g.status:''}`;goals.append(row);}
+    host.append(goals);
     $('recap-stats-note').textContent='Duration is captured with statistics; refresh explicitly before completing to include more time. Completed recaps stay frozen. Win rate = wins / all games (including draws), rounded. No games = N/A. Best streak uses ordered recorded results only.'+(stats.hasCorrections?' Manual total corrections are active and do not change the recorded streak.':'');
   }
   function draw(){

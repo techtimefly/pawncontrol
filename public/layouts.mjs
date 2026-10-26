@@ -16,7 +16,8 @@ export function portraitDefaults() {
     widgets:{
       stats:widget(60,60,960,280,2),scoreboard:widget(60,1330,960,160,3),
       tips:widget(450,1500,570,250,4,false),socials:widget(60,1690,960,100,4,false),
-      ticker:widget(60,1810,960,70,1),credits:widget(0,0,1080,1920,10,false)
+      ticker:widget(60,1810,960,70,1),credits:widget(0,0,1080,1920,10,false),
+      goal:widget(60,1500,960,180,4,false)
     },
     typography:{font:28,padding:24,gap:12,tickerFont:30,tipsFont:28,socialsFont:30,creditsFont:38,creditsHeading:48,creditsBrandSize:76,creditsGap:44},
     layoutLocked:false,snap:true,guides:guideDefaults('portrait')
@@ -25,7 +26,11 @@ export function portraitDefaults() {
 // The landscape representation is deliberately unchanged so old installations,
 // backups and presets retain their exact composition when portrait is added.
 export function upgradeLayouts(settings) {
-  return {...settings,portrait:settings.portrait??portraitDefaults(),landscapeGuides:settings.landscapeGuides??guideDefaults()};
+  const portrait=settings.portrait??portraitDefaults();
+  return {...settings,
+    widgets:{...settings.widgets,goal:settings.widgets?.goal??{x:1800,y:1080,w:650,h:220,scale:1,visible:false,locked:false,z:4}},
+    portrait:{...portrait,widgets:{...portrait.widgets,goal:portrait.widgets?.goal??portraitDefaults().widgets.goal}},
+    landscapeGuides:settings.landscapeGuides??guideDefaults()};
 }
 export function layoutState(state,layout='landscape') {
   if(layout!=='portrait')return {...state,layout:'landscape'};
