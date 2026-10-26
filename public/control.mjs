@@ -1,3 +1,4 @@
+import {createAppearanceControls} from './appearance-controls.mjs';
 import {createVisibilityControls,acceptServerState} from './visibility-controls.mjs';
 import {bindGuideEditor,reservationGeometry} from './guide-editor.mjs';
 import {layoutState,layoutDimensions,portraitDefaults,widgetGeometryPatch} from './layouts.mjs';
@@ -54,7 +55,7 @@ function renderGuideControls(){
  for(const key of ['safeArea','board','camera']){const group=el('div');group.append(inputField(key==='safeArea'?'Safe area':`${key} reservation`,'checkbox',guides[key].enabled,v=>update(key,'enabled',v)));if(guides[key].enabled){const grid=el('div','form-grid');for(const field of key==='safeArea'?['top','right','bottom','left']:['x','y','w','h'])grid.append(inputField(field,'number',guides[key][field],v=>update(key,field,v),{min:0,max:['x','w','left','right'].includes(field)?width:height}));if(key!=='safeArea')grid.append(inputField('Lock aspect ratio','checkbox',!!guides[key].aspectLocked,v=>update(key,'aspectLocked',v)));group.append(grid);}host.append(group);}
  if(editorLayout==='portrait'){host.append(el('h3','','Portrait typography'));for(const [key,label,min,max] of [['font','Stats font',18,60],['padding','Card padding',10,60],['gap','Row gap',4,40],['tickerFont','CTA font',18,60],['tipsFont','Tips font',18,60],['socialsFont','Socials font',18,60],['creditsFont','Credits font',20,90],['creditsHeading','Credits heading',24,120],['creditsBrandSize','Credits brand',30,180],['creditsGap','Credits gap',10,180]])host.append(inputField(label,'number',state.portrait.typography[key],v=>changeLayout(s=>s.typography[key]=v),{min,max}));}
 }
-function showLogin() { recapControls.clear(); goalsControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
+function showLogin() { appearanceControls.clear(); recapControls.clear(); goalsControls.clear(); events?.close(); $('app').hidden=true; $('login').hidden=false; }
 async function start() {
   try { state=acceptServerState(state,await api('/api/state'),retiredInstances); admin=await api('/api/admin'); }
   catch { showLogin(); return; }
@@ -79,6 +80,7 @@ async function setTab(next) {
   guideEditor.cancel();
   if(tab==='ticker'&&next!==tab&&!await ctaTextControls.canLeave())return;
   if(tab==='tips'&&next!==tab&&!await bonusControls.canLeave())return;
+  if(tab==='appearance'&&next!==tab)appearanceControls.leave();
   tab=next;
   if(dockMode==='combined') {
     document.body.classList.toggle('dock-score',tab==='session');document.body.classList.toggle('dock-cta',tab==='ticker');
@@ -196,7 +198,7 @@ function renderLayout() {
   for(const [k,label,min,max] of [['x','X',0,width],['y','Y',0,height],['w','Width',150,width],['h','Height',40,height],['z','Layer',0,50],['scale','Content scale',.5,2]])grid.append(inputField(label,'number',w[k],v=>changeLayout(s=>s.widgets[widgetId][k]=v),{min,max,step:k==='scale'?.05:1}));
   fields.append(grid,inputField('Lock this widget','checkbox',w.locked,v=>changeLayout(s=>s.widgets[widgetId].locked=v)));
   if(selected==='clock') {
-    const layout=editorLayout,style=state.sessionClock[layout];
+    const layout=editorLayout,style=view.sessionClock[layout];
     fields.append(el('h3','','Session Clock style'),el('p','small-note','Uses the same session timer as Stats and the Score dock. Start, pause, reset or restart it from Session / Score. Styling and visibility are saved separately for each orientation.'));
     for(const [key,label,type,options] of [
       ['font','Font size','number',{min:18,max:160}],['family','Font','select',{items:[['sans-serif','Sans serif'],['serif','Serif'],['monospace','Monospace']]}],
@@ -235,9 +237,8 @@ function renderTickerPreview() {
   preview.widgets.ticker={...preview.widgets.ticker,x:0,y:0,w:1000,h:110};renderCanvas($('ticker-preview'),preview);resizePreviews();
 }
 function renderTheme() {
-  document.querySelector('.theme-swatch strong').textContent=state.username;
+  appearanceControls.render();
   const host=$('theme-controls');host.replaceChildren();
-  for(const [key,label] of [['accent','Accent'],['background','Card background'],['foreground','Values'],['muted','Labels'],['streak','Streak badge']])host.append(inputField(label,'color',state.theme[key],v=>change(s=>s.theme[key]=v)));
   for(const [key,label,min,max] of [['opacity','Card opacity (%)',0,100],['radius','Corner radius',0,60],['font','Font size at 1440p',18,60],['padding','Card padding',10,60],['gap','Row spacing',4,40]])host.append(inputField(label,'number',state.theme[key],v=>change(s=>s.theme[key]=v),{min,max}));
 }
 function renderSettings() {
@@ -365,6 +366,7 @@ const starterControls=createStarterControls({getState:()=>state,action,confirmCh
 const ctaTextControls=createCtaTextControls({getState:()=>state,action,confirmChange:message=>modal('Confirm CTA change',[],message)});
 const socialsControls=createSocialsControls({getState:()=>state,action,change,api,button,inputField,confirmChange:message=>modal('Confirm Socials change',[],message,'Apply to draft')});
 const bonusControls=createBonusControls({getState:()=>state,change,action,button,inputField,confirmChange:message=>modal('Confirm tips change',[],message)});
+const appearanceControls=createAppearanceControls({getState:()=>state,action,askName:async(operation,value)=>{const result=await modal(operation==='rename'?'Rename scheme':operation==='duplicate'?'Duplicate scheme':'Save current colors',[{key:'name',label:'Scheme name',maxlength:40,value}]);return result?result.name.trim():null;},confirmDelete:name=>modal('Delete saved scheme?',[],`Delete “${name}”? Applied colors stay unchanged.`,'Delete')});
 new ResizeObserver(resizePreviews).observe(document.querySelector('.desk'));window.addEventListener('resize',resizePreviews);
 setInterval(()=>{if(state){if(tab==='goals')goalsControls.tick();$('session-clock').textContent=clock(elapsed(state.session));for(const id of ['card-preview','editor-canvas'])tickCanvas($(id),id==='editor-canvas'?editorState():state);}},1000);
 void start();

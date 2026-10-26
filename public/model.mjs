@@ -1,3 +1,4 @@
+import {appearanceDefaults} from './appearance.mjs';
 import {sessionClockDefaults,clockWidget} from './session-clock.mjs';
 import {goalPresentationDefaults} from './goals-presentation.mjs';
 import {channelText} from './identity.mjs';
@@ -36,6 +37,7 @@ export const PRESETS = {
 export function defaults() {
   const bonus=bonusDefaults();
   return {
+    appearance:appearanceDefaults(),
     goalTracker:goalDefaults(),goalPresentation:goalPresentationDefaults(),sessionClock:sessionClockDefaults(),
     socials:socialDefaults(),socialIcons:{},socialsPlayback:{seq:0,paused:false,command:null,currentId:null},
     credits:bonus.credits,tips:bonus.tips,creditsPlayback:bonus.creditsPlayback,tipsPlayback:bonus.tipsPlayback,

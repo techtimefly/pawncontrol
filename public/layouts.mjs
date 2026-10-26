@@ -1,3 +1,4 @@
+import {appearanceDefaults,resolveAppearance} from './appearance.mjs';
 import {sessionClockDefaults,clockWidget} from './session-clock.mjs';
 import {goalPresentationDefaults} from './goals-presentation.mjs';
 export const LAYOUTS = ['landscape', 'portrait'];
@@ -29,12 +30,13 @@ export function portraitDefaults() {
 // backups and presets retain their exact composition when portrait is added.
 export function upgradeLayouts(settings) {
   const portrait=settings.portrait??portraitDefaults();
-  return {...settings,goalPresentation:settings.goalPresentation??goalPresentationDefaults(),sessionClock:settings.sessionClock??sessionClockDefaults(),
+  return {...settings,appearance:settings.appearance??appearanceDefaults(),goalPresentation:settings.goalPresentation??goalPresentationDefaults(),sessionClock:settings.sessionClock??sessionClockDefaults(),
     widgets:{...settings.widgets,clock:settings.widgets?.clock??clockWidget(),goal:settings.widgets?.goal??{x:1800,y:1080,w:650,h:220,scale:1,visible:false,locked:false,z:4}},
     portrait:{...portrait,widgets:{...portrait.widgets,clock:portrait.widgets?.clock??clockWidget('portrait'),goal:portrait.widgets?.goal??portraitDefaults().widgets.goal}},
     landscapeGuides:settings.landscapeGuides??guideDefaults()};
 }
 export function layoutState(state,layout='landscape') {
+  state=resolveAppearance(state,layout);
   if(layout!=='portrait')return {...state,layout:'landscape'};
   const p=state.portrait??portraitDefaults(),t=p.typography;
   return {...state,layout:'portrait',widgets:p.widgets,layoutLocked:p.layoutLocked,snap:p.snap,

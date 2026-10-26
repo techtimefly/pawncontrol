@@ -1,4 +1,5 @@
 import {fitCanvas} from './viewport.mjs';
+import {resolveAppearance} from './appearance.mjs';
 import {createTipsTextControls} from './tips-text-controls.mjs';
 import {createMessageId} from './model.mjs';
 import {createCredits,createTips} from './bonus-render.mjs';
@@ -20,11 +21,11 @@ export function createBonusControls({getState,change,action,button,inputField,co
     for(const [label,offset] of [['↑',-1],['↓',1]]){const b=button(label,()=>move(offset),'text-button');b.disabled=index+offset<0||index+offset>=length;b.setAttribute('aria-label',offset<0?'Move up':'Move down');host.append(b);}
   }
   function renderCredits(){
-    const state=getState(),c=state.credits,options=$('credits-options');options.replaceChildren();
+    const state=getState(),c=resolveAppearance(state).credits,options=$('credits-options');options.replaceChildren();
     for(const [key,label,max] of [['brand','Brand',120],['subtitle','Subtitle',200],['final','Final message',200]])options.append(textField(label,c[key],v=>change(s=>s.credits[key]=v),max));
     options.append(inputField('Timing','select',c.timing,v=>change(s=>s.credits.timing=v),{items:[['duration','Total duration'],['speed','Scroll speed']]}));
     for(const [key,label,min,max] of [['duration','Duration (seconds)',5,1800],['speed','Speed (px / second)',10,300],['font','Text size',20,90],['heading','Heading size',24,120],['brandSize','Brand size',30,180],['gap','Section spacing',10,180],['opacity','Background opacity (%)',0,100]])options.append(inputField(label,'number',c[key],v=>change(s=>s.credits[key]=v),{min,max}));
-    for(const [key,label] of [['background','Background'],['accent','Brand color'],['headingColor','Heading color'],['detailColor','Detail color']])options.append(inputField(label,'color',c[key],v=>change(s=>s.credits[key]=v)));
+    for(const [key,label] of [['background','Background'],['accent','Brand color'],['headingColor','Heading color'],['detailColor','Detail color']])options.append(inputField(label,'color',c[key],v=>action({type:'credits-color',key,value:v,expected:state.credits[key]})));
     options.append(inputField('Loop credits','checkbox',c.loop,v=>change(s=>s.credits.loop=v)));
     const host=$('credits-sections');host.replaceChildren();
     c.sections.forEach((section,index)=>{

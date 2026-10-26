@@ -13,6 +13,33 @@ A self-hosted, streaming-platform-neutral chess broadcast desk, pulling public C
 
 Requires **Node.js 24 LTS** (includes built-in SQLite). No npm packages or build step.
 
+### Color schemes
+
+In **Appearance**, choose **Landscape**, **Portrait**, or **Both**. Pick Classic
+Chess, Midnight, High Contrast, or a saved custom scheme and select **Preview
+scheme**. Color pickers, six-digit hex inputs, palette swatches and recent colors
+edit the local preview. **Apply colors** publishes it; **Cancel preview** or
+leaving Appearance discards it. **Undo colors** restores the previous palettes
+until another appearance change or page reload. Concurrent changes are rejected;
+cancel and preview again using the latest state before retrying.
+
+Schemes contain card surface, primary/muted text, accent, border, streak badge,
+and credits background colors. Overlay canvases remain transparent. Applying or
+undoing a scheme never changes layout, visibility, content, typography, timer,
+results or playback. Existing custom clock and credits colors remain overrides;
+editing those widget colors deliberately also preserves them across later scheme
+changes. Credits color overrides are shared by both orientations, matching the
+existing credits controls; clock overrides are independent.
+
+**Save current as scheme** captures the saved semantic palette (not an unapplied
+preview or widget overrides). With Both selected, Landscape supplies the source
+palette. Custom schemes support duplicate, rename and delete; built-ins can be
+duplicated. Up to 30 custom schemes, names of 1–40 characters, and 12 recent colors
+are persisted and included in backups. Deleting a scheme leaves applied colors
+unchanged. Loading a composition preset restores its colors while retaining the
+current custom scheme library and recent colors. Legacy settings retain their
+original colors until a scheme is applied.
+
 ```sh
 git clone git@github.com:techtimefly/pawn_control.git
 cd pawn_control

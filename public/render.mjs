@@ -1,3 +1,4 @@
+import {resolveAppearance,contrastText} from './appearance.mjs';
 import {sessionClockStatus,clockFontSize} from './session-clock.mjs';
 import {createSocials} from './socials-render.mjs';
 import {renderGoal,tickGoal} from './goals-render.mjs';
@@ -20,6 +21,9 @@ export function statValues(s) {
   };
 }
 export function renderCanvas(canvas,s,{editor=false}={}) {
+  s=resolveAppearance(s,s.layout==='portrait'?'portrait':'landscape');
+  if(s.theme.border)canvas.style.setProperty('--scheme-border',s.theme.border);else canvas.style.removeProperty('--scheme-border');
+  canvas.style.setProperty('--streak-ink',s.theme.border?contrastText(s.theme.streak):'#ffffff');
   canvas.dataset.layout=s.layout==='portrait'?'portrait':'landscape';
   canvas.style.setProperty('--accent',s.theme.accent); canvas.style.setProperty('--card-bg',rgba(s.theme.background,s.theme.opacity));
   canvas.style.setProperty('--ink',s.theme.foreground); canvas.style.setProperty('--quiet',s.theme.muted);
@@ -100,4 +104,4 @@ function renderTicker(wrapper,s) {
   if(!wrapper._ticker)wrapper._ticker=createTicker(wrapper);
   wrapper._ticker.update(tickerEntries(s),{...s.ticker,fitText:s.layout==='portrait'},s.channel,rgba(s.theme.background,s.ticker.opacity));
 }
-export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); tickGoal(canvas,s);const wrapper=canvas.querySelector('[data-widget="clock"]');if(wrapper)renderSessionClock(wrapper,s); }
+export function tickCanvas(canvas,s) { s=resolveAppearance(s,s.layout==='portrait'?'portrait':'landscape');for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); tickGoal(canvas,s);const wrapper=canvas.querySelector('[data-widget="clock"]');if(wrapper)renderSessionClock(wrapper,s); }
