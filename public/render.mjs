@@ -1,4 +1,5 @@
 import {createSocials} from './socials-render.mjs';
+import {renderGoal,tickGoal} from './goals-render.mjs';
 import { createTicker } from './ticker.mjs';
 import {createCredits,createTips} from './bonus-render.mjs';
 import { FIELDS, rating, totals, streaks, elapsed, clock, tickerEntries, historyStats,WIDGET_IDS } from './model.mjs';
@@ -30,7 +31,8 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
     const w=s.widgets[id];
     wrapper.style.cssText=`left:${w.x}px;top:${w.y}px;width:${w.w}px;height:${w.h}px;z-index:${w.z};display:${w.visible?'block':'none'}`;
     wrapper.classList.toggle('position-locked',s.layoutLocked||w.locked);
-    if(id==='credits') {
+    if(id==='goal') { renderGoal(wrapper,s); }
+    else if(id==='credits') {
       if(!wrapper._credits){const content=el('div','credits-content');wrapper.append(content);wrapper._credits=createCredits(content,{autoplay:w.visible});}
       if(w.visible&&!wrapper._wasVisible)wrapper._credits.command('restart');
       wrapper._wasVisible=w.visible;wrapper._credits.update({...s.credits,font:s.credits.font*w.scale,heading:s.credits.heading*w.scale,brandSize:s.credits.brandSize*w.scale,gap:s.credits.gap*w.scale},s.creditsPlayback);
@@ -84,4 +86,4 @@ function renderTicker(wrapper,s) {
   if(!wrapper._ticker)wrapper._ticker=createTicker(wrapper);
   wrapper._ticker.update(tickerEntries(s),{...s.ticker,fitText:s.layout==='portrait'},s.channel,rgba(s.theme.background,s.ticker.opacity));
 }
-export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); }
+export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); tickGoal(canvas,s); }

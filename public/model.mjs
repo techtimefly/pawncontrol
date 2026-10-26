@@ -3,8 +3,9 @@ import {portraitDefaults,guideDefaults} from './layouts.mjs';
 import {starterMessages} from './starter-templates.mjs';
 import {socialDefaults,socialWidget} from './socials-model.mjs';
 import {bonusDefaults} from './bonus-model.mjs';
+import {goalDefaults} from './goals-model.mjs';
 export const MODES = ['blitz', 'rapid', 'bullet'];
-export const WIDGET_IDS = ['stats','scoreboard','ticker','tips','credits','socials'];
+export const WIDGET_IDS = ['stats','scoreboard','ticker','tips','credits','socials','goal'];
 // CTA identifiers are local record keys, not authentication credentials.
 let messageSequence=0;
 export function createMessageId(cryptoProvider=globalThis.crypto) {
@@ -33,6 +34,7 @@ export const PRESETS = {
 export function defaults() {
   const bonus=bonusDefaults();
   return {
+    goalTracker:goalDefaults(),
     socials:socialDefaults(),socialIcons:{},socialsPlayback:{seq:0,paused:false,command:null,currentId:null},
     credits:bonus.credits,tips:bonus.tips,creditsPlayback:bonus.creditsPlayback,tipsPlayback:bonus.tipsPlayback,
     portrait:portraitDefaults(),landscapeGuides:guideDefaults(),
@@ -43,6 +45,7 @@ export function defaults() {
     theme: { accent: '#27baf3', background: '#272f40', foreground: '#f2f4fa', muted: '#a5b2c6', streak: '#ff622d', opacity: 95, radius: 22, font: 26, padding: 26, gap: 14 },
     widgets: {
       ...bonus.widgets,socials:socialWidget(),
+      goal: { x: 1800, y: 1080, w: 650, h: 220, scale: 1, visible: false, locked: false, z: 4 },
       stats: { x: 2070, y: 70, w: 430, h: 390, scale: 1, visible: true, locked: false, z: 2 },
       scoreboard: { x: 70, y: 1190, w: 650, h: 160, scale: 1, visible: false, locked: false, z: 3 },
       ticker: { x: 70, y: 1350, w: 2420, h: 60, scale: 1, visible: true, locked: false, z: 1 }
@@ -50,10 +53,10 @@ export function defaults() {
     layoutLocked: false, snap: true,
     ticker: { mode: 'scroll', interval: 25, speed: 100, gap: 40, pause: 2, direction: 'left', paused: false, font: 28, opacity: 95, separator: '♟', messages: starterMessages() },
     session: newSession(), undo: [], presets: {},
-    api: { profile: null, stats: null, games: [], checkedAt: null, successAt: null, error: null, nextCheck: null }
+    api: { profile: null, stats: null, games: [], checkedAt: null, successAt: null, statsSuccessAt:null, statsError:null, error: null, nextCheck: null }
   };
 }
-export function newSession(baseline = {}) { return { startedAt: Date.now(), results: [], corrections: { win: 0, loss: 0, draw: 0 }, baseline, elapsed: 0, runningSince: null }; }
+export function newSession(baseline = {}) { return { id:createMessageId(), startedAt: Date.now(), results: [], corrections: { win: 0, loss: 0, draw: 0 }, baseline, elapsed: 0, runningSince: null }; }
 export function totals(session) {
   const t = { ...session.corrections };
   for (const r of session.results) t[r.result]++;

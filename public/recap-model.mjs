@@ -1,3 +1,4 @@
+import {goalOutcomes} from './goals-model.mjs';
 import {totals,streaks,rating,elapsed,clock} from './model.mjs';
 
 export function recapDefaults() {
@@ -8,14 +9,15 @@ export function recapDefaults() {
 }
 export function recapStats(state,now=Date.now()) {
   const t=totals(state.session),games=t.win+t.loss+t.draw;
-  return {username:state.username,wins:t.win,losses:t.loss,draws:t.draw,games,
+  return {goals:goalOutcomes(state,now),username:state.username,wins:t.win,losses:t.loss,draws:t.draw,games,
     winRate:games?Math.round(t.win/games*100):null,bestStreak:streaks(state.session).best,
     rating:rating(state,state.activeMode),mode:state.activeMode,startedAt:state.session.startedAt,
     duration:elapsed(state.session,now),hasCorrections:Object.values(state.session.corrections).some(n=>n!==0)};
 }
 // Excludes timer ticks; includes ordered results, identity, active rating and corrections.
 export function recapSessionKey(state) {
-  const {duration,...stats}=recapStats(state);
+  // Status age is descriptive; passing zero keeps wall-clock aging out of conflict keys.
+  const {duration,...stats}=recapStats(state,0);
   return JSON.stringify({stats,results:state.session.results,corrections:state.session.corrections});
 }
 export function renderRecapTemplate(template,stats,{streamLink='',hashtags=''}={}) {

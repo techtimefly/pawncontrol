@@ -69,7 +69,7 @@ test('authenticated settings and backups accept blank names; invalid names fail 
    assert.equal((await post('/api/action',{type:'settings',settings:{channel}},cookie)).status,200);
    const backup=await (await fetch(base+'/api/export',{headers:{cookie}})).json();
    assert.equal(backup.settings.channel,channel);
-   const imported=await post('/api/action',{type:'import',data:backup,expectedRecapRevision:backup.recap.revision},cookie);
+   const imported=await post('/api/action',{type:'import',data:backup,expectedRecapRevision:backup.recap.revision,expectedGoalRevision:backup.goalTracker.revision},cookie);
    assert.equal(imported.status,200,await imported.text());
   }
   assert.equal((await post('/api/action',{type:'settings',settings:{channel:''}},cookie)).status,200);
