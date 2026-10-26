@@ -1,3 +1,4 @@
+import {sessionClockStatus,clockFontSize} from './session-clock.mjs';
 import {createSocials} from './socials-render.mjs';
 import {renderGoal,tickGoal} from './goals-render.mjs';
 import { createTicker } from './ticker.mjs';
@@ -31,7 +32,8 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
     const w=s.widgets[id];
     wrapper.style.cssText=`left:${w.x}px;top:${w.y}px;width:${w.w}px;height:${w.h}px;z-index:${w.z};display:${w.visible?'block':'none'}`;
     wrapper.classList.toggle('position-locked',s.layoutLocked||w.locked);
-    if(id==='goal') { renderGoal(wrapper,s); }
+    if(id==='clock') { renderSessionClock(wrapper,s); }
+    else if(id==='goal') { renderGoal(wrapper,s); }
     else if(id==='credits') {
       if(!wrapper._credits){const content=el('div','credits-content');wrapper.append(content);wrapper._credits=createCredits(content,{autoplay:w.visible});}
       if(w.visible&&!wrapper._wasVisible)wrapper._credits.command('restart');
@@ -82,8 +84,21 @@ export function renderCanvas(canvas,s,{editor=false}={}) {
     if(editor && !wrapper.querySelector('.resize-handle')) { const handle=el('button','resize-handle'); handle.type='button'; handle.setAttribute('aria-label',`Resize ${id}`); wrapper.append(handle); }
   }
 }
+function renderSessionClock(wrapper,s) {
+  const style=s.sessionClock[s.layout==='portrait'?'portrait':'landscape'],w=s.widgets.clock;
+  let card=wrapper.querySelector('.session-clock-card');
+  if(!card) {
+    card=el('div','session-clock-card');
+    const time=el('span','session-clock-time');time.dataset.timer='true';
+    card.append(time,el('span','session-clock-status'));wrapper.append(card);
+  }
+  card.style.color=style.color;card.style.backgroundColor=rgba(style.background,style.opacity);card.style.fontFamily=style.family;
+  card.style.fontSize=`${clockFontSize(style,w,clock(elapsed(s.session)))}px`;
+  card.querySelector('[data-timer]').textContent=clock(elapsed(s.session));
+  const status=card.querySelector('.session-clock-status');status.textContent=sessionClockStatus(s.session);status.hidden=!style.showStatus;
+}
 function renderTicker(wrapper,s) {
   if(!wrapper._ticker)wrapper._ticker=createTicker(wrapper);
   wrapper._ticker.update(tickerEntries(s),{...s.ticker,fitText:s.layout==='portrait'},s.channel,rgba(s.theme.background,s.ticker.opacity));
 }
-export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); tickGoal(canvas,s); }
+export function tickCanvas(canvas,s) { for(const e of canvas.querySelectorAll('[data-timer]')) e.textContent=clock(elapsed(s.session)); tickGoal(canvas,s);const wrapper=canvas.querySelector('[data-widget="clock"]');if(wrapper)renderSessionClock(wrapper,s); }

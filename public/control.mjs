@@ -35,7 +35,7 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
 function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
 function editorState(){return layoutState(state,editorLayout);}
 function renderGuides(){
@@ -184,13 +184,21 @@ function renderLayout() {
   const list=$('widget-list');list.replaceChildren();
   for(const id of WIDGET_IDS) {
     const row=el('div',`widget-select ${id===selected?'selected':''}`),check=el('input');check.type='checkbox';check.checked=view.widgets[id].visible;check.setAttribute('aria-label',`Show ${id}`);check.onchange=()=>changeLayout(s=>s.widgets[id].visible=check.checked);
-    row.append(check,button(id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
+    row.append(check,button(id==='clock'?'Session Clock':id,()=>{selected=id;renderLayout();},'text-button'));list.append(row);
   }
   const fields=$('widget-fields');fields.replaceChildren();const w=view.widgets[selected];
   fields.append(el('h3','',`${selected.charAt(0).toUpperCase()+selected.slice(1)} position`));
   const grid=el('div','form-grid');
   for(const [k,label,min,max] of [['x','X',0,width],['y','Y',0,height],['w','Width',150,width],['h','Height',40,height],['z','Layer',0,50],['scale','Content scale',.5,2]])grid.append(inputField(label,'number',w[k],v=>changeLayout(s=>s.widgets[widgetId][k]=v),{min,max,step:k==='scale'?.05:1}));
   fields.append(grid,inputField('Lock this widget','checkbox',w.locked,v=>changeLayout(s=>s.widgets[widgetId].locked=v)));
+  if(selected==='clock') {
+    const layout=editorLayout,style=state.sessionClock[layout];
+    fields.append(el('h3','','Session Clock style'),el('p','small-note','Uses the same session timer as Stats and the Score dock. Start, pause, reset or restart it from Session / Score. Styling and visibility are saved separately for each orientation.'));
+    for(const [key,label,type,options] of [
+      ['font','Font size','number',{min:18,max:160}],['family','Font','select',{items:[['sans-serif','Sans serif'],['serif','Serif'],['monospace','Monospace']]}],
+      ['color','Text color','color',{}],['background','Background','color',{}],['opacity','Background opacity (%)','number',{min:0,max:100}],['showStatus','Show timer status','checkbox',{}]
+    ]) fields.append(inputField(label,type,style[key],v=>action(()=>({type:'session-clock-style',layout,expected:state.sessionClock[layout],patch:{[key]:v}})),options));
+  }
   if(selected==='stats')fields.append(button('Fit card height',()=>{
     const card=$('editor-canvas').querySelector('.stats-card');const h=Math.ceil(card.scrollHeight*w.scale);changeLayout(s=>{s.widgets.stats.h=Math.min(height-s.widgets.stats.y,Math.max(40,h));});
   },'secondary wide'));
