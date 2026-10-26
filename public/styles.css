@@ -115,3 +115,6 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 .goal-chart-unavailable{font-size:.4em;color:var(--quiet);margin-top:.35em}
 .goal-selection-row{display:flex;align-items:center;gap:8px;min-width:0;margin:.4em 0}.goal-selection-row label{flex:1;overflow-wrap:anywhere;min-width:0}
 .goal-presentation-controls{min-width:0}.goal-presentation-controls select{max-width:100%}
+
+/* Goals follow the shared two-column layout; source order keeps editing first when stacked. */
+.goals-columns{align-items:start}.goals-main,.goals-sidebar{min-width:0}

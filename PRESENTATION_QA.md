@@ -69,3 +69,22 @@ at 360 × 800: restart cancellation preserved the paused value; confirmed restar
 ran from zero, then paused at 00:00:11 in both dock and overlay while the two recorded
 wins remained intact. No browser console errors were reported in either output.
 The Node tests workflow runs this same suite on pushes and pull requests.
+
+## Goals sidebar follow-up (2026-10-26)
+
+Layout-only revision: individual goals and their editor now occupy the main left
+column; presentation and widget visibility occupy the right sidebar. This reuses
+CTA/Stats' shared two-column breakpoint and dock stacking, with goals first in DOM
+and keyboard order. No event handlers, IDs or state behavior changed.
+
+Browser pixel checks: 1920 x 1080 and 1100 x 900 show both columns side by side;
+800 x 900 and the 360 x 800 combined dock stack goals before settings. All four
+widths had no document horizontal overflow. Desktop edit/save and landscape
+stacked/donut changes succeeded. Dock edit/save and portrait horizontal change
+succeeded with the saved status. Tab from the title reaches the target field;
+Tab from Archived goals reaches the first presentation Display control. Portrait
+controls are reachable by keyboard/scroll and render without clipping at 360px.
+Screenshots: goals-desktop.jpg, goals-medium.jpg, goals-narrow.jpg and
+goals-dock-settings.jpg in assets/screenshots/presentation-qa/.
+
+Follow-up validation: 165/165 tests passed on Node 24.22.1; all module syntax and complete branch diff checks passed.
