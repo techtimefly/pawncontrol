@@ -35,7 +35,7 @@ function action(a) {
   }).catch(e=>{toast(e.message);$('save-state').textContent='Change not saved'; if(state&&!starterControls.busy)renderTab();});
   return queue;
 }
-function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
+function change(mutator) { return action(()=>{const settings=structuredClone(Object.fromEntries(['username','channel','activeMode','showAvatar','fields','parts','goals','overrides','theme','portrait','landscapeGuides','sessionClock','goalPresentation','widgets','layoutLocked','snap','ticker','credits','tips','socials'].map(k=>[k,state[k]])));const before=structuredClone(settings);mutator(settings);return {type:'settings',expectedGoalRevision:state.goalTracker.revision,settings:Object.fromEntries(Object.entries(settings).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before[k])))};}); }
 function changeLayout(mutator) { const target=editorLayout;return change(s=>mutator(target==='portrait'?s.portrait:s)); }
 function editorState(){return layoutState(state,editorLayout);}
 function renderGuides(){

@@ -104,3 +104,14 @@ dialog.starter-dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh -
 .session-clock-time{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
 .session-clock-status{font-size:.42em;line-height:1.4;white-space:nowrap}
 .session-clock-status[hidden]{display:none}
+.goal-cards{width:100%;height:100%;display:grid;gap:8px;overflow:hidden;min-width:0;min-height:0}
+.goal-cards-stacked{grid-template-rows:repeat(var(--goal-count),minmax(0,1fr))}
+.goal-cards-horizontal{grid-template-columns:repeat(var(--goal-count),minmax(0,1fr))}
+.goal-cards .featured-goal-card{min-width:0;min-height:0}
+.goal-chart{margin-top:.35em;height:.22em;border-radius:99px;background:color-mix(in srgb,var(--quiet) 25%,transparent);overflow:hidden}
+.goal-chart-bar .goal-chart-fill{height:100%;width:100%;transform:scaleX(var(--progress));transform-origin:left;background:var(--accent)}
+.goal-chart-donut{height:1.4em;width:1.4em;position:relative;background:none}
+.goal-chart-donut .goal-chart-fill{width:100%;height:100%;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--progress)*1turn),color-mix(in srgb,var(--quiet) 25%,transparent) 0);mask:radial-gradient(circle,transparent 47%,black 49%)}
+.goal-chart-unavailable{font-size:.4em;color:var(--quiet);margin-top:.35em}
+.goal-selection-row{display:flex;align-items:center;gap:8px;min-width:0;margin:.4em 0}.goal-selection-row label{flex:1;overflow-wrap:anywhere;min-width:0}
+.goal-presentation-controls{min-width:0}.goal-presentation-controls select{max-width:100%}
