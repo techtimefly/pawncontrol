@@ -27,4 +27,3 @@ for(const layout of ['landscape','portrait'])await action({type:'goal-presentati
 console.log(`QA fixture: ${base}/control | ${base}/overlay | ${base}/overlay?layout=portrait | ${base}/dock`);
 console.log(`Disposable data: ${dataDir}. Stop with Ctrl+C. No physical OBS test is implied.`);
 process.on('SIGINT',()=>{app.server.closeAllConnections();void app.close().then(()=>process.exit(0));});
-
