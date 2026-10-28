@@ -41,8 +41,8 @@ current custom scheme library and recent colors. Legacy settings retain their
 original colors until a scheme is applied.
 
 ```sh
-git clone git@github.com:techtimefly/pawn_control.git
-cd pawn_control
+git clone git@github.com:techtimefly/pawncontrol.git
+cd pawncontrol
 npm run setup
 # Save the generated login password; setup creates .env with unique credentials.
 # Edit .env and set CHESS_USERNAME to your Chess.com username.
@@ -109,7 +109,7 @@ Anyone who can reach this deployment can view stream data, edit settings/scores,
 
 For a first-time installation without generated credentials, copy `.env.example` to `.env`, set AUTH_REQUIRED=false and CHESS_USERNAME, then configure HOST and DATA_DIR for your deployment. Existing placeholder password/token values are ignored in this mode. Setup continues to generate credentials with authentication enabled by default.
 
-For the Linux systemd service, edit `/opt/pawn_control/.env` and run `systemctl restart pawn-control`; the supplied service already reads that file. For Docker Compose, edit `.env` and run `docker compose up -d --force-recreate` so the new environment is loaded. No service-file or port-mapping change is needed. After restarting, reload the control panel and OBS docks, then copy the clean source URLs into OBS and refresh those Browser Sources.
+For the Linux systemd service, edit `/opt/pawncontrol/.env` and run `systemctl restart pawn-control`; the supplied service already reads that file. For Docker Compose, edit `.env` and run `docker compose up -d --force-recreate` so the new environment is loaded. No service-file or port-mapping change is needed. After restarting, reload the control panel and OBS docks, then copy the clean source URLs into OBS and refresh those Browser Sources.
 
 To re-enable authentication, set AUTH_REQUIRED=true, supply a valid CONTROL_PASSWORD and OVERLAY_TOKEN, and restart/recreate again. Refresh the panel/docks and replace token-free OBS URLs with the full URLs from Settings/Credits. All prior login sessions are invalid after restart; session results and layouts stay saved. Blank, misspelled, or other AUTH_REQUIRED values fail startup rather than disabling authentication.
 
@@ -181,7 +181,7 @@ New installations default to continuous scrolling. Existing installations retain
 
 These commands assume Debian/Ubuntu Linux with systemd running as the service manager. They work on bare metal, a VM, or a container that supports systemd; they do not apply to Windows/macOS or minimal containers without systemd. Use the quick start for local development or the optional Docker setup below instead. Install Git, curl, and Node.js 24 LTS using your trusted package source, and verify `node --version` is v24 or newer.
 
-The repository and installation directory use the same name: `pawn_control`. The service expects the checkout at `/opt/pawn_control`. Install Git and configure access to the private repository on the server first.
+The repository and installation directory use the same name: `pawncontrol`. The service expects the checkout at `/opt/pawncontrol`. Install Git and configure access to the private repository on the server first.
 
 Before installing the unit, verify the system-wide runtime:
 
@@ -196,41 +196,41 @@ The service requires Node.js 24+ at `/usr/bin/node`. If Node exists elsewhere (f
 Run the following in a root shell (for example, `sudo -i`) on the Linux server for a new installation:
 
 ```sh
-useradd --system --user-group --home /opt/pawn_control --shell /usr/sbin/nologin pawn
+useradd --system --user-group --home /opt/pawncontrol --shell /usr/sbin/nologin pawn
 mkdir -p /opt /var/lib/pawn-control
-git clone git@github.com:techtimefly/pawn_control.git /opt/pawn_control
-cp /opt/pawn_control/.env.example /opt/pawn_control/.env
-# Replace the example placeholders in /opt/pawn_control/.env with a 16+ character password, 24+ character token,
+git clone git@github.com:techtimefly/pawncontrol.git /opt/pawncontrol
+cp /opt/pawncontrol/.env.example /opt/pawncontrol/.env
+# Replace the example placeholders in /opt/pawncontrol/.env with a 16+ character password, 24+ character token,
 # and HOST=0.0.0.0. Generate random credentials with your password manager.
 # For trusted LAN use without credentials, set AUTH_REQUIRED=false instead.
 # Set CHESS_USERNAME to your Chess.com username before first startup.
 # Set DATA_DIR=/var/lib/pawn-control.
 chown -R pawn:pawn /var/lib/pawn-control
-chown root:pawn /opt/pawn_control/.env
-chmod 640 /opt/pawn_control/.env
-cp /opt/pawn_control/deploy/pawn-control.service /etc/systemd/system/
+chown root:pawn /opt/pawncontrol/.env
+chmod 640 /opt/pawncontrol/.env
+cp /opt/pawncontrol/deploy/pawn-control.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now pawn-control
 systemctl status pawn-control
 ```
 
-The unit remains named `pawn-control.service`, and persistent data stays at `/var/lib/pawn-control`. `StateDirectory=pawn-control` creates that directory at service startup with ownership for `pawn`, before filesystem sandboxing is applied. Only the checkout path uses the underscore. `WorkingDirectory` and `EnvironmentFile` use `/opt/pawn_control`; `ExecStart` invokes `/usr/bin/node` with `/opt/pawn_control/server.mjs`. The service defaults DATA_DIR to `/var/lib/pawn-control`; keep that value in `.env` too, since EnvironmentFile values take precedence. A different DATA_DIR also requires updating the unit's writable-directory settings and permissions.
+The unit remains named `pawn-control.service`, and persistent data stays at `/var/lib/pawn-control`. `StateDirectory=pawn-control` creates that directory at service startup with ownership for `pawn`, before filesystem sandboxing is applied. Only the checkout path uses the underscore. `WorkingDirectory` and `EnvironmentFile` use `/opt/pawncontrol`; `ExecStart` invokes `/usr/bin/node` with `/opt/pawncontrol/server.mjs`. The service defaults DATA_DIR to `/var/lib/pawn-control`; keep that value in `.env` too, since EnvironmentFile values take precedence. A different DATA_DIR also requires updating the unit's writable-directory settings and permissions.
 
 If Node is installed at a different system-wide path, prefer a persistent override so future service-file updates do not undo it. Run `systemctl edit pawn-control` and enter, for example:
 
 ```ini
 [Service]
 ExecStart=
-ExecStart=/usr/local/bin/pawn-node /opt/pawn_control/server.mjs
+ExecStart=/usr/local/bin/pawn-node /opt/pawncontrol/server.mjs
 ```
 
 Use the actual executable path on your machine. Do not point it at `/root/.nvm/...` or symlink into `/root`. An independently installed/copied executable such as `/usr/local/bin/pawn-node` must be executable by `pawn`; check with `runuser -u pawn -- /usr/local/bin/pawn-node --version`. If using a copied binary, update that copy when upgrading Node. Drop-ins under `/etc/systemd/system/pawn-control.service.d/` survive replacement of the main unit file.
 
-For an existing installation already at `/opt/pawn_control`, update the installed service after pulling:
+For an existing installation already at `/opt/pawncontrol`, update the installed service after pulling:
 
 ```sh
-git -C /opt/pawn_control pull --ff-only
-cp /opt/pawn_control/deploy/pawn-control.service /etc/systemd/system/pawn-control.service
+git -C /opt/pawncontrol pull --ff-only
+cp /opt/pawncontrol/deploy/pawn-control.service /etc/systemd/system/pawn-control.service
 systemctl daemon-reload
 systemctl restart pawn-control
 systemctl status pawn-control
@@ -258,7 +258,7 @@ Optional container image: `docker compose up -d --build` after configuring `.env
 - `226/NAMESPACE` mentioning a missing `/var/lib/pawn-control`: update the installed unit to the version with `StateDirectory=pawn-control`, then reload systemd. For older units, create it with `install -d -o pawn -g pawn -m 0750 /var/lib/pawn-control`.
 - `203/EXEC` and `Unable to locate executable '/usr/bin/node'`: Node is missing at the configured path. Check `command -v node`, install Node 24+ system-wide if necessary, or update `ExecStart` to the real system-wide executable. This error happens before application code runs.
 - After correcting the unit/runtime, use `systemctl daemon-reload`, `systemctl reset-failed pawn-control`, `systemctl restart pawn-control`, then `journalctl -u pawn-control -n 50 --no-pager`.
-- An error trying to create `/opt/pawn_control/data` under the hardened service: set `.env` DATA_DIR to `/var/lib/pawn-control`, not `./data`, and restart.
+- An error trying to create `/opt/pawncontrol/data` under the hardened service: set `.env` DATA_DIR to `/var/lib/pawn-control`, not `./data`, and restart.
 - Password/token startup rejection with AUTH_REQUIRED=true: check the length requirements above and replace example credentials. Do not paste `.env` into logs or support messages.
 - A black OBS source: verify the full token-bearing overlay URL, source dimensions matching the intended scene area, and visibility settings. If that exact URL works in a browser on the streaming PC but OBS stays black, restart OBS and check its browser-source logs if necessary.
 - CTA additions on plain HTTP are supported; if an older UI still reports `crypto.randomUUID is not a function`, update the checkout and hard-refresh the control panel/dock.
@@ -280,7 +280,7 @@ backup_dir="/var/backups/pawn-control/$(date -u +%Y%m%dT%H%M%SZ)"
 install -d -m 0700 "$backup_dir"
 systemctl stop pawn-control
 cp -a /var/lib/pawn-control "$backup_dir/data"
-cp -p /opt/pawn_control/.env "$backup_dir/.env"
+cp -p /opt/pawncontrol/.env "$backup_dir/.env"
 systemctl start pawn-control
 systemctl status pawn-control
 ```
